@@ -1,0 +1,85 @@
+/*
+# Team ID:          3800
+# Theme:            ecomender bot
+# Author List:      manny, priyank, yagnesh, sohum 
+# Filename:         led controller
+# File Description: led1, 2, 3 are connected to the 3 leds on the bot and this file controlles the color according to the detected color and done flag
+*/
+
+module led_controller(
+    input wire [1:0] color_current,
+    input wire done,
+    input wire clk,
+    input wire [4:0] current_pos,
+    output reg [3:0] led1,
+    output reg [3:0] led2,
+    output reg [3:0] led3	// Assuming 4 separate RGB LEDs mapped to led[0], led[1], led[2], led[3]
+);
+
+reg [24:0] counter; // Assuming a 25-bit counter for 1-second delay with a suitable clock
+reg [24:0] delay_counter;
+reg blink_state;
+reg [1:0] color_prev;
+reg [1:0] temp1_color;
+reg [1:0] temp2_color;
+
+initial begin 
+color_prev = 2'b00;
+temp1_color = 2'b00;
+temp2_color = 2'b00;
+led1 = 3'b000;
+end
+
+always @(posedge clk) begin
+    if (done) begin
+        counter <= counter + 25'b1;
+        if (counter == 24_000_000) begin // Adjusted for 1 MHz clock frequency
+            blink_state <= ~blink_state; // Toggle blink state every 1 second
+            counter <= 0;
+        end
+        if (blink_state) begin
+            led1 <= 3'b010;
+				led2 <= 3'b010;
+				led3 <= 3'b010;// GREEN on all three LEDs (led[0], led[1], led[2])
+        end else begin
+            led1 <= 3'b000;
+				led2 <= 3'b000;
+			   led3 <= 3'b000;	// LEDs off
+        end
+    end 
+	 else begin
+        counter <= 0; // Reset counter when not in done state
+        blink_state <= 0;
+		 case(color_prev) 
+				2'b01: led1 = 3'b100; // Turn on LED for red
+                2'b10: led1 = 3'b010; // Turn on LED for green
+                2'b11: led1 = 3'b001; // Turn on LED for blue
+                2'b00: led1 = 3'b000; // Turn on LED for white (or customize if needed)
+                default: led1 = 3'b000; // Default case for safety
+            endcase
+   // end
+	 end
+end
+
+always @(posedge clk) begin
+	if (delay_counter == 4_000_000)begin
+	temp2_color <= temp1_color;
+	temp1_color <= color_current;
+	delay_counter <= 0;
+	end else begin
+	delay_counter <= delay_counter + 1;
+	end
+	//temp1_color <= color_current;
+end
+//
+always @(posedge clk) begin
+	if((temp2_color == temp1_color == color_current) && temp2_color != 2'b00) begin
+	color_prev = temp2_color;
+	end
+	if(current_pos == 7)begin
+		color_prev =  2'b00;
+	
+	end
+	end
+
+endmodule

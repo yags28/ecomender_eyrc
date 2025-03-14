@@ -1,0 +1,129 @@
+// EcoMender Bot : Task 2A - UART Receiver
+/*
+Instructions
+-------------------
+Students are not allowed to make any changes in the Module declaration.
+
+This file is used to receive UART Rx data packet from receiver line and then update the rx_msg and rx_complete data lines.
+
+Recommended Quartus Version : 20.1
+The submitted project file must be 20.1 compatible as the evaluation will be done on Quartus Prime Lite 20.1.
+
+Warning: The error due to compatibility will not be entertained.
+-------------------
+*/
+
+/*
+Module UART Receiver
+
+Baudrate: 115200
+
+Input:  clk_3125 - 3125 KHz clock
+        rx      - UART Receiver
+
+Output: rx_msg - received input message of 8-bit width
+        rx_parity - received parity bit
+        rx_complete - successful uart packet processed signal
+*/
+
+// module declaration
+module uart_rx(
+    input clk_3125,
+    input rx,
+    output reg [0:7] rx_msg,
+    output reg rx_parity,
+    output reg rx_complete
+    );
+
+//////////////////DO NOT MAKE ANY CHANGES ABOVE THIS LINE//////////////////
+
+
+parameter BIT_PERIOD = 27;
+
+// Internal Registers
+reg [3:0] state_counter = 0;            // Tracks the fsm states 0-10 -> packet bits
+reg [7:0] temp_reg = 0;                 // Shift register for incoming data bits
+reg [4:0] bit_length_counter = 31;      // Counter to time bit sampling (max 15)
+reg temp_parity = 0;              
+reg parity_bit = 0;                     // Stores the received parity bit
+
+// Initialize outputs
+initial begin
+    rx_msg = 0;
+	 rx_parity = 0;
+    rx_complete = 0;
+end
+
+// UART Receiver Logic
+always @(posedge clk_3125) begin 
+    case (state_counter)
+        0: begin 
+            // turn off rx_complete signal and clear parity bit
+            rx_complete <= 0;
+            parity_bit <= 0;
+            // idle state + start bit detection
+            if (rx == 0) begin
+                // start_bit_detected = 1;
+                bit_length_counter <= bit_length_counter + 1;
+                // state_counter <= 1;
+            end
+            if (bit_length_counter == BIT_PERIOD) begin
+                bit_length_counter <= 0;
+                state_counter <= 1;
+            end
+        end
+        // 1-8 : begin
+        1, 2, 3, 4, 5, 6, 7, 8: begin
+            // data bit 1
+            bit_length_counter <= bit_length_counter + 1;
+            if (bit_length_counter == (BIT_PERIOD/2)) begin
+                temp_reg[8-state_counter] <= rx; // store the received bit in big endian format
+                // even parity calculation
+                parity_bit <= parity_bit ^ rx; // change rx to temp_reg[8-state_counter] and see the difference in elements used
+            end
+            if (bit_length_counter == BIT_PERIOD) begin
+                bit_length_counter <= 0;
+                state_counter <= state_counter + 1;
+            end
+        end
+        9: begin
+            // parity bit
+            bit_length_counter <= bit_length_counter + 1;
+            if (bit_length_counter == (BIT_PERIOD/2)) begin
+                temp_parity <= rx;
+            end
+            if (bit_length_counter == BIT_PERIOD) begin
+                bit_length_counter <= 0;
+                state_counter <= state_counter + 1; //can be changed to static 10
+            end
+        end
+        10: begin
+            // stop bit
+            bit_length_counter <= bit_length_counter + 1;
+            if (bit_length_counter == BIT_PERIOD) begin
+                bit_length_counter <= 0;
+                state_counter <= 0; //can be changed to static 11
+                // check parity
+                if (parity_bit == temp_parity) begin
+                    rx_msg <= temp_reg;
+                    //excess
+                    
+                end
+                else begin
+                    rx_msg <= 8'h3F; // default value is 0x3F -> "?" in ASCII
+                end
+                rx_parity <= temp_parity;
+                rx_complete <= 1;
+            end
+        end
+        default: 
+            state_counter <= 0;
+    endcase
+end
+
+
+//////////////////DO NOT MAKE ANY CHANGES BELOW THIS LINE//////////////////
+
+
+endmodule
+

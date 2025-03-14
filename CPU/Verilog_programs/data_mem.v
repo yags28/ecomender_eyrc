@@ -1,0 +1,47 @@
+module data_mem #(parameter DATA_WIDTH = 32, ADDR_WIDTH = 32, MEM_SIZE = 64) (
+    input       clk, wr_en,
+    input       [2:0] funct3,
+    input       [ADDR_WIDTH-1:0] wr_addr, wr_data,
+    output reg  [DATA_WIDTH-1:0] rd_data_mem
+);
+
+    // Array of 64 32-bit words or data
+    reg [DATA_WIDTH-1:0] data_ram [0:MEM_SIZE-1];
+
+    // Calculate word address (limited by MEM_SIZE)
+    wire [5:0] word_addr = wr_addr[DATA_WIDTH-1:2] % MEM_SIZE;  // Only 6 bits needed
+
+    // Synchronous write logic with masking for sb, sh, and sw
+    always @(posedge clk) begin
+        if (wr_en) begin
+            case (funct3)
+                3'b000: // sb (store byte)
+                    data_ram[word_addr] <= (data_ram[word_addr] & ~(8'hFF << (wr_addr[1:0] * 8))) | 
+                                           ((wr_data[7:0] & 8'hFF) << (wr_addr[1:0] * 8));
+                
+                3'b001: // sh (store half-word)
+                    data_ram[word_addr] <= (data_ram[word_addr] & ~(16'hFFFF << (wr_addr[1] * 16))) | 
+                                           ((wr_data[15:0] & 16'hFFFF) << (wr_addr[1] * 16));
+                
+                3'b010: // sw (store word)
+                    data_ram[word_addr] <= wr_data;
+                
+                default: // Unsupported funct3 values
+                    data_ram[word_addr] <= data_ram[word_addr]; // No change
+            endcase
+        end
+    end
+
+    // Read logic
+    always @(*) begin
+        case (funct3)
+            3'b000: rd_data_mem = {{24{data_ram[word_addr][wr_addr[1:0] * 8 + 7]}}, data_ram[word_addr][wr_addr[1:0] * 8 +: 8]}; // Sign-extend byte
+            3'b100: rd_data_mem = {24'b0, data_ram[word_addr][wr_addr[1:0] * 8 +: 8]}; // Zero-extend byte
+            3'b001: rd_data_mem = {{16{data_ram[word_addr][wr_addr[1] * 16 + 15]}}, data_ram[word_addr][wr_addr[1] * 16 +: 16]}; // Sign-extend half-word
+            3'b101: rd_data_mem = {16'b0, data_ram[word_addr][wr_addr[1] * 16 +: 16]}; // Zero-extend half-word
+            3'b010: rd_data_mem = data_ram[word_addr]; // Load word (lw)
+            default: rd_data_mem = 32'b0; // Default case to handle unexpected funct3 values
+        endcase
+    end
+
+endmodule

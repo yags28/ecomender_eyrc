@@ -1,0 +1,135 @@
+module RISC_V_Wrapper (
+    input wire clk,
+    input wire rst,  // External reset
+    input wire [31:0] SP, // Start Point from CPU_top
+    input wire [31:0] EP, // End Point from CPU_top
+    output reg [31:0] Result,
+	 output reg [31:0] WriteData, DataAdr, ReadData,Ext_DataAdr, Ext_WriteData,PC,
+	 output reg Ext_MemWrite
+);
+
+    // State Machine for Sequential Writes
+    reg [3:0] state;
+    reg [15:0] counter;
+    reg reset_internal;
+
+    // Instantiate the CPU
+    t1c_riscv_cpu Cpu_PLZ_Work (
+        .clk(clk), 
+        .reset(reset_internal),  // Ensure reset stays high for external writes
+        .Ext_MemWrite(Ext_MemWrite),
+        .Ext_WriteData(Ext_WriteData), 
+        .Ext_DataAdr(Ext_DataAdr),
+        .MemWrite(MemWrite),
+        .WriteData(WriteData), 
+        .DataAdr(DataAdr), 
+        .ReadData(ReadData),
+        .PC(PC), 
+        .Result(Result)
+    );
+	 
+	initial begin 
+		reset_internal <= 1;
+	end
+
+    // State Machine Execution
+    always @(posedge clk or posedge rst) begin
+        if (rst) begin
+            state <= 0;
+            counter <= 0;
+            reset_internal <= 0;  // Keep reset high initially
+            Ext_MemWrite <= 0;
+            Ext_WriteData <= 0;
+            Ext_DataAdr <= 0;
+        end else begin
+            case (state)
+                0: begin
+                    Ext_MemWrite <= 1;  
+                    Ext_WriteData <= SP;  
+                    Ext_DataAdr <= 32'h02000000;  
+                    state <= 1;  
+                    counter <= 0;  
+                end
+
+                1: begin
+                    if (counter < 8) counter <= counter + 1;
+                    else begin
+                        Ext_MemWrite <= 0;
+                        state <= 2;
+                        counter <= 0;
+                    end
+                end
+
+                2: begin
+                    Ext_MemWrite <= 1;  
+                    Ext_WriteData <= EP;  
+                    Ext_DataAdr <= 32'h02000004;  
+                    state <= 3;  
+                    counter <= 0;  
+                end
+
+                3: begin
+                    if (counter < 8) counter <= counter + 1;
+                    else begin
+                        Ext_MemWrite <= 0;
+                        state <= 4;
+                        counter <= 0;
+                    end
+                end
+
+                4: begin
+                    Ext_MemWrite <= 1;
+                    Ext_WriteData <= 0;  
+                    Ext_DataAdr <= 32'h02000008;  
+                    state <= 5;
+                    counter <= 0;
+                end
+
+                5: begin
+                    if (counter < 8) counter <= counter + 1;
+                    else begin
+                        Ext_MemWrite <= 0;
+                        state <= 6;
+                        counter <= 0;
+                    end
+                end
+
+                6: begin
+                    Ext_MemWrite <= 1;
+                    Ext_WriteData <= 0;
+                    Ext_DataAdr <= 32'h0200000C;
+                    state <= 7;
+                    counter <= 0;
+                end
+
+                7: begin
+                    if (counter < 8) counter <= counter + 1;
+                    else begin
+                        Ext_MemWrite <= 0;
+                        state <= 8;
+                        counter <= 0;
+                    end
+                end
+
+                8: begin
+                    Ext_MemWrite <= 1;
+                    Ext_WriteData <= 32'd14;
+                    Ext_DataAdr <= 32'h02000014;
+                    state <= 9;
+                    counter <= 0;
+                end
+
+                9: begin
+                    if (counter < 8) counter <= counter + 1;
+                    else begin
+                        Ext_MemWrite <= 0;
+                        reset_internal <= 0; // Lower reset after all writes
+                        state <= 10;  
+                    end
+                end
+
+                default: state <= 10; // Idle after execution
+            endcase
+        end
+    end
+endmodule

@@ -1,0 +1,68 @@
+module servo_control (
+    input wire clk,                    // Main clock
+    input wire reset,                  // Reset signal
+    input wire obstacle_detected,      // Trigger from the IR sensor module
+    output reg sarm_pwm,             // PWM signal for Servo 1
+    output reg sclaw_pwm              // PWM signal for Servo 2
+);
+
+// Parameters for Servo Timing
+reg [7:0] sarm_angle;               // Angle for Servo 1 (90° max)
+reg [7:0] sclaw_angle;               // Angle for Servo 2 (45° max)
+reg [23:0] timer;                     // Timer for slow rotation
+reg movement_stage;                   // Stage of movement
+
+// Initial settings
+initial begin
+    sarm_angle = 8'd0;              // Initial position of Servo 1
+    sclaw_angle = 8'd0;              // Initial position of Servo 2
+    timer = 24'd0;
+    movement_stage = 0;               // Start at stage 0
+end
+
+// Servo Movement Control
+always @(posedge clk or posedge reset) begin
+    if (reset) begin
+        sarm_angle <= 8'd0;
+        sclaw_angle <= 8'd0;
+        timer <= 24'd0;
+        movement_stage <= 0;
+    end else if (obstacle_detected) begin
+        case (movement_stage)
+            0: begin // First stage: S1 clockwise 90° and S2 clockwise 45°
+                if (timer < 24'd5000000) begin // Adjust timer for slower rotation
+                    sarm_angle <= 8'd90;    // Set Servo 1 to 90°
+                    sclaw_angle <= 8'd45;    // Set Servo 2 to 45°
+                    timer <= timer + 1;
+                end else begin
+                    timer <= 0;
+                    movement_stage <= 1;
+                end
+            end
+
+            1: begin // Second stage: S2 counterclockwise 45° and S1 counterclockwise 90°
+                if (timer < 24'd5000000) begin
+                    sarm_angle <= 8'd0;     // Reset Servo 1 to 0°
+                    sclaw_angle <= 8'd0;     // Reset Servo 2 to 0°
+                    timer <= timer + 1;
+                end else begin
+                    timer <= 0;
+                    movement_stage <= 0;      // Reset to initial stage
+                end
+            end
+        endcase
+    end
+end
+
+// Generate PWM for servos (basic implementation)
+always @(posedge clk or posedge reset) begin
+    if (reset) begin
+        sarm_pwm <= 0;
+        sclaw_pwm <= 0;
+    end else begin
+        sarm_pwm <= (servo1_angle > 0) ? 1 : 0; // Simple PWM logic based on angle
+        sclaw_pwm <= (servo2_angle > 0) ? 1 : 0; // Simple PWM logic based on angle
+    end
+end
+
+endmodule

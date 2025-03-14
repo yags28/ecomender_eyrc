@@ -1,0 +1,63 @@
+module message_formatter(
+    input clk,
+    input rst,
+    input [2:0] message_type, // SLM, RPM, RDM, END, DEBUG
+    input [2:0] location,     // PSU, FSU, WSU, SU, MU
+    input [1:0] numData,      // 1, 2, 3
+    input [1:0] colorData,    // IM, IS, AS
+    input write_enable,
+    output reg [7:0] message_buffer [0:14], // 15-byte message buffer
+    output reg message_ready
+);
+
+    always @(posedge clk or posedge rst) begin
+        if (rst) begin
+            message_ready <= 0;
+        end else if (write_enable) begin
+            case (message_type)
+                3'b000: message_buffer[0] <= "S";
+                3'b001: message_buffer[0] <= "R";
+                3'b010: message_buffer[0] <= "D";
+                3'b011: message_buffer[0] <= "E";
+                3'b100: message_buffer[0] <= "D";
+                default: message_buffer[0] <= "X";
+            endcase
+
+            message_buffer[1] <= "-";
+
+            case (location)
+                3'b000: message_buffer[2] <= "P";
+                3'b001: message_buffer[2] <= "F";
+                3'b010: message_buffer[2] <= "W";
+                3'b011: message_buffer[2] <= "S";
+                3'b100: message_buffer[2] <= "M";
+                default: message_buffer[2] <= "X";
+            endcase
+
+            message_buffer[3] <= "S";
+            message_buffer[4] <= "U";
+            message_buffer[5] <= "-";
+
+            // Number Data
+            message_buffer[6] <= numData + "0";
+
+            // Color Data
+            case (colorData)
+                2'b00: message_buffer[7] <= "I"; // IM
+                2'b01: message_buffer[7] <= "S"; // IS
+                2'b10: message_buffer[7] <= "A"; // AS
+                default: message_buffer[7] <= "X";
+            endcase
+
+            message_buffer[8] <= "M";
+            message_buffer[9] <= "-";
+            message_buffer[10] <= "*";
+            message_buffer[11] <= "#";
+
+            for (int i = 12; i < 15; i = i + 1)
+                message_buffer[i] <= " ";
+
+            message_ready <= 1;
+        end
+    end
+endmodule

@@ -1,0 +1,8 @@
+# Ignore all files and subdirectories within the "db" directory
+db/*
+
+# Ignore all files and subdirectories within the "incremental_db" directory
+incremental_db/*
+
+# Ignore all files ending with .qsf, regardless of their location
+*.qsf

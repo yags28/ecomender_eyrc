@@ -1,0 +1,394 @@
+/*
+# Team ID:          3800
+# Theme:            ecomender bot
+# Author List:      manny, priyank, yagnesh, sohum 
+# Filename:         uart_mod
+# File Description: top level for the uart assemnbly including the uart_tx and uart_rx modules
+*/
+
+module uart_mod(
+    input clk50M,
+    output wire tx,
+    input [4:0] current_pos,
+    input [3:0] led_color,
+    output reg go_go,
+    input wire rx,
+    output wire[7:0] msg_rec,
+	 input wire [1:0] col_curr,
+	 input wire node_found
+);
+
+reg tx_start;
+reg [7:0]data_bits;
+wire tx_done;
+reg [4:0] state_counter;
+reg start;
+wire rx_complete;
+ reg [0:7] Message_Received;
+reg [3:0] led_color_prev;
+
+ always @(*) begin
+ Message_Received = msg_rec;
+ end
+
+reg rex_state;
+reg next_state;
+reg current_state;
+reg [1:0] uart_state, next_uart_state;
+
+Frequency_Scaling #(.COUNTER_WIDTH(4), .MAX_COUNT(8)) fqs3_125mhz (clk50M, clk_3_125Mhz);
+
+// Instantiate the UART transmitter (assuming proper implementation of uart_tx)
+uart_tx uart_tx_inst (
+    .clk_3125(clk_3_125Mhz),				// changed from clk_1hz
+    .parity_type(1'b0),            
+    .tx_start(tx_start),
+    .data(data_bits),
+    .tx(tx),
+    .tx_done(tx_done)
+    //.state_counter(uart_tx_state)
+    );
+	 
+uart_rx uart_rx_inst(
+    .clk_3125(clk_3_125Mhz),
+    .rx(rx),
+    .rx_msg(msg_rec),
+    .rx_parity(),
+    .rx_complete(rx_complete)
+    );
+	 
+// dictionary
+parameter S = 8'h53;
+parameter L = 8'h4C;
+parameter M = 8'h4D;
+parameter F = 8'h46;
+parameter U = 8'h55;
+parameter zero = 8'h30;
+parameter hyphen = 8'h2D;
+parameter A = 8'h41;
+parameter hash = 8'h23;
+parameter I= 8'h49;
+parameter IDLE = 2'b00;
+parameter ACTIVE = 2'b01;
+parameter WAITING = 2'b10;
+
+// Initialization
+initial begin
+    tx_start <= 0;
+    state_counter <= 0;
+    start <= 0;
+end
+
+    // State transition process for recieve message
+    always @(posedge clk_3_125Mhz) begin
+        current_state <= next_state;
+    end
+
+    always @(*) begin
+        case (rex_state)
+            IDLE: begin
+                if (Message_Received == 8'h83) begin
+                    next_state = ACTIVE;
+                end else begin
+                    next_state = IDLE;
+                end
+            end
+            ACTIVE: begin
+                    next_state = ACTIVE;
+            end
+            default: next_state = IDLE;
+        endcase
+    end
+	 
+	     // Output logic process for recieve message
+    always @(*) begin
+        case (current_state)
+            IDLE: go_go <= 0;
+            ACTIVE: go_go <= 1;
+        endcase
+    end
+
+// this is just to store the previous led color used to send uart message
+always @(posedge clk_3_125Mhz) begin
+	led_color_prev <= led_color;
+end
+
+
+// Combinational logic for next state
+always @(*) begin
+    case (uart_state)
+        IDLE: begin
+            if (current_pos == 1 || current_pos == 8 || 
+                current_pos == 3 || current_pos == 4 || 
+                current_pos == 10 || current_pos == 11) begin
+					 if ((led_color_prev != led_color) && (led_color != 2'b00)) begin
+						next_uart_state = ACTIVE;
+					end else begin
+                next_uart_state = IDLE;
+            end
+            end else begin
+                next_uart_state = IDLE;
+            end
+        end
+        
+        ACTIVE: begin
+            next_uart_state = WAITING;
+        end
+        
+        WAITING: begin
+            if (node_found) begin
+                next_uart_state = IDLE;
+            end else begin
+                next_uart_state = WAITING;
+            end
+        end
+        
+        default: next_uart_state = IDLE;
+    endcase
+end
+	 
+// Sequential logic
+always @(posedge clk_3_125Mhz ) begin
+        uart_state <= next_uart_state;
+        case (uart_state)
+            IDLE: start <= 0;
+            ACTIVE: start <= 1;
+            WAITING: start <= 0;
+        endcase
+ //   end
+end
+	 
+// Main state machine
+// starts to send when start signal is high
+// TL;DR : sends "SLM-FSU*-**#" character by character. * are decided by the current position and led color
+always @(posedge clk_3_125Mhz) begin
+ case (state_counter)
+    0: begin    
+        tx_start <= 0;
+        data_bits <= 8'h00;
+        if (start) begin 		//&& Send_reg[current_pos]
+            state_counter <= 1;
+        end
+    end
+
+    1: begin
+        // Transmit 'S'
+        data_bits <= 8'h53; // ASCII 'S'
+        tx_start <= 1;
+        state_counter <= 2;
+	 end
+
+    2: begin
+        tx_start <= 0;
+        if (tx_done) begin
+            state_counter <= 3;
+        end
+    end
+
+    3: begin
+        // Transmit 'L'
+        data_bits <= L; // ASCII 'L'
+        tx_start <= 1;
+        state_counter <= 4;
+	 end
+
+    4: begin
+        tx_start <= 0;
+        if (tx_done) begin
+            state_counter <= 5;
+        end
+    end
+
+    5: begin
+        // Transmit 'M'
+        data_bits <= 8'h4D; // ASCII 'M'
+        tx_start <= 1;
+        state_counter <= 6;
+    
+	 end
+
+    6: begin
+        tx_start <= 0;
+        if (tx_done) begin
+            state_counter <= 7;
+        end
+    end
+
+    7: begin
+        // Transmit '-'
+        data_bits <= 8'h2D; // ASCII '-'
+        tx_start <= 1;
+        state_counter <= 8;
+	 end
+
+    8: begin
+        tx_start <= 0;
+        if (tx_done) begin
+            state_counter <= 9;
+        end
+    end
+
+    9: begin
+        // Transmit 'F'
+        data_bits <= 8'h46; // ASCII 'F'
+        tx_start <= 1;
+        state_counter <= 10;
+	 end
+
+    10: begin
+        tx_start <= 0;
+        if (tx_done) begin
+            state_counter <= 11;
+        end
+    end
+
+    11: begin
+        // Transmit 'S'
+        data_bits <= 8'h53; // ASCII 'S'
+        tx_start <= 1;
+        state_counter <= 12;
+	 end
+
+    12: begin
+        tx_start <= 0;
+        if (tx_done) begin
+            state_counter <= 13;
+        end
+    end
+
+    13: begin
+        // Transmit 'U'
+        data_bits <= 8'h55; // ASCII 'U'
+        tx_start <= 1;
+        state_counter <= 14;
+	 end
+
+    14: begin
+        tx_start <= 0;
+        if (tx_done) begin
+            state_counter <= 15;
+        end
+    end
+
+    15: begin
+        // Transmit '1 or 2 or 3'
+		  case (current_pos)
+							1,8: data_bits <= 8'h31; // ASCII '1'
+							3,10: data_bits <= 8'h32; // ASCII '2'
+							4,11: data_bits <= 8'h33; // ASCII '3'
+							default: data_bits <= 8'h30; // ASCII '0' (optional default case)
+					endcase
+					// data_bits <= 8'h30; // ASCII '0'
+        tx_start <= 1;
+        state_counter <= 16;
+	 end
+
+    16: begin
+        tx_start <= 0;
+        if (tx_done) begin
+            state_counter <= 17;
+        end
+    end
+
+    17: begin
+        // Transmit '-'
+        data_bits <= 8'h2D; // ASCII '-'
+        tx_start <= 1;
+        state_counter <= 18;
+	 end
+
+    18: begin
+        tx_start <= 0;
+        if (tx_done) begin
+            state_counter <= 19;
+        end
+    end
+
+    19: begin
+        // Transmit 'A or I'
+		  case (led_color)
+                    3'b100: data_bits <= 8'h49; // ASCII 'I' for red
+                    3'b001: data_bits <= 8'h49; // ASCII 'I' for blue
+                    3'b010: data_bits <= 8'h41; // ASCII 'A' for green
+						  endcase
+       // data_bits <= 8'h41; // ASCII 'A'
+        tx_start <= 1;
+        state_counter <= 20;
+    
+	 end
+
+    20: begin
+        tx_start <= 0;
+        if (tx_done) begin
+            state_counter <= 21;
+        end
+    end
+
+    21: begin
+        // Transmit 'S or M'
+		   case (led_color)
+                    3'b100: data_bits <= 8'h4D; // ASCII 'M' for red
+                    3'b001: data_bits <= 8'h53; // ASCII 'S' for blue
+                    3'b010: data_bits <= 8'h53; // ASCII 'S' for green
+                endcase
+       // data_bits <= 8'h53; // ASCII 'S'
+        tx_start <= 1;
+        state_counter <= 22;
+	 end
+
+    22: begin
+        tx_start <= 0;
+        if (tx_done) begin
+            state_counter <= 23;
+        end
+    end
+
+    23: begin
+        // Transmit '#'
+        data_bits <= 8'h23; // ASCII '#'
+        tx_start <= 1;
+        state_counter <= 24; // Go back to idle
+	 end
+	 
+	  24: begin
+        tx_start <= 0;
+        if (tx_done) begin
+            state_counter <= 25;
+        end
+	  end
+		
+	 25: begin
+        // Transmit '#'
+        data_bits <= 8'd13; // ASCII '/'
+        tx_start <= 1;
+        state_counter <= 26; 
+	 end
+	 
+    26: begin
+        tx_start <= 0;
+        if (tx_done) begin
+            state_counter <= 27;
+        end
+    end
+	 
+	 27: begin
+        // Transmit '#'
+        data_bits <= 8'd10; // ASCII '/n'
+        tx_start <= 1;
+        state_counter <= 28; 
+	 end
+	 
+	 28: begin
+        tx_start <= 0;
+        if (tx_done) begin
+            state_counter <= 0;
+				
+        end
+    end
+
+    default: state_counter <= 0; // Default case 
+endcase
+
+end 
+
+endmodule				

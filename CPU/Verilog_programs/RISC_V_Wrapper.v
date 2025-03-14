@@ -16,9 +16,9 @@ module RISC_V_Wrapper (
 );
 
     // State Machine Parameters
-    parameter IDLE = 2'b00;
-    parameter START = 2'b01;
-	 parameter DONE = 2'b10;
+    localparam IDLE = 2'b00;
+    localparam START = 2'b01;
+	 localparam DONE = 2'b10;
     
     // State registers
     reg [1:0] current_state, next_state;

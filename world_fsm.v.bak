@@ -4,7 +4,7 @@ module world_FSM(
     // input wire [1:0] csl_reg_pos,
     input wire [2:0] csl_reg_data,
     input wire csl_reg_write_en,
-    input wire msgType
+    input wire msgType,
 );
     // Declare the array (register) to store 3-bit elements
     reg [2:0] csl_queue [3:0];  // 4 elements of 3 bits each

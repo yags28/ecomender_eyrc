@@ -8,7 +8,7 @@
 */
 
 module lmd(
-    clk,
+    clk_3125,
     dout_adc,
     reset,
     din_adc,
@@ -34,7 +34,7 @@ module lmd(
 );
 
 
-input wire  clk;
+input wire    clk_3125;
 input wire  dout_adc;
 input wire  reset;
 output wire din_adc;
@@ -57,7 +57,7 @@ input wire [1:0] dir_out;
 input wire [3:0] dir_arr_len;
 input wire run_done, cpu_done;
 
-wire    clk_3125;
+
 
 wire    SYNTHESIZED_WIRE_9;
 wire    [2:0] SYNTHESIZED_WIRE_6;
@@ -76,11 +76,6 @@ assign  adc_clk = clk_3125;
 //                            turn_reg_array[5], turn_reg_array[4], turn_reg_array[3], 
 //                            turn_reg_array[2], turn_reg_array[1], turn_reg_array[0]};
 
-Frequency_Scaling   b2v_inst3(
-    .clk_50M(clk),
-    .adc_clk_out(clk_3125));
-    defparam    b2v_inst3.COUNTER_WIDTH = 4;
-    defparam    b2v_inst3.MAX_COUNT = 10;
 
 // try reducing the clock below 3.125Mhz for lower resource useage?
 LFA_asssembly   b2v_inst2(

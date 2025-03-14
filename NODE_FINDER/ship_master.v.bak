@@ -27,12 +27,12 @@ reg signed[3:0] reg_pos;
 reg [3:0] start_delay_counter;
 
 // Define the node values
-localparam MU1 = 3'b001;
-localparam MU2 = 3'b010;
-localparam MU3 = 3'b011;
-localparam SU1 = 3'b101;
-localparam SU2 = 3'b110;
-localparam SU3 = 3'b111;
+parameter MU1 = 3'b001;
+parameter MU2 = 3'b010;
+parameter MU3 = 3'b011;
+parameter SU1 = 3'b101;
+parameter SU2 = 3'b110;
+parameter SU3 = 3'b111;
 
 // interpretor instantiation
 interpretor uut (
@@ -105,8 +105,7 @@ always @(posedge clk) begin
             if (reg_pos >= 0) begin
 					 pick_mode = 1'b1;
                 if (message[reg_pos] >= MU1 && message[reg_pos] <= MU3) begin
-                    data <= 
-                    [1:0]; // Output the *POSITION*
+                    data <= reg_pos[1:0]; // Output the *POSITION*
                     node_select <= 0;     // Indicate it's a position
                     stack <= stack + 1;   // Increment stack (count of MUs)
                     reg_pos <= reg_pos - 1;

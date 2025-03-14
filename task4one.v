@@ -92,7 +92,7 @@ color_detection color_detect_inst (
     .clk_50m(clk),
     .cs_out(cs_out),
     .filter(filter),
-    .color(color),
+    .Stable_Color(color),
     .s0(s0w),
     .s1(s1w),
     .s2(s2w),

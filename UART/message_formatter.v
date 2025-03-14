@@ -1,3 +1,5 @@
+
+
 module message_formatter(
     input clk,
     input rst,
@@ -11,112 +13,149 @@ module message_formatter(
     output reg message_ready
 );
 
-    reg [7:0] message_buffer_15B [0:14]; // Internal memory array
+    // Internal memory array to store the formatted message
+    reg [7:0] message_buffer[0:14];
+
+    // Keeps track of the message length
+    reg [3:0] write_idx; 
 
     always @(posedge clk or posedge rst) begin
         if (rst) begin
             message_ready <= 0;
-        end else if (write_enable) begin
-            // Message Type (SLM, RPM, etc.)
+        end 
+        else if (write_enable) begin
+            // Reset write index
+            write_idx = 0;
+
+            // Append Message Type
             case (message_type)
-                3'b000: begin
-                    message_buffer_15B[0] <= "S";
-                    message_buffer_15B[1] <= "L";
-                    message_buffer_15B[2] <= "M";
+                3'b000: begin 
+                    message_buffer[write_idx] = "S"; write_idx = write_idx + 1; 
+                    message_buffer[write_idx] = "L"; write_idx = write_idx + 1;
+                    message_buffer[write_idx] = "M"; write_idx = write_idx + 1; 
                 end
-                3'b001: begin
-                    message_buffer_15B[0] <= "R";
-                    message_buffer_15B[1] <= "P";
-                    message_buffer_15B[2] <= "M";
+
+                3'b001: begin 
+                    message_buffer[write_idx] = "R"; write_idx = write_idx + 1;
+                    message_buffer[write_idx] = "P"; write_idx = write_idx + 1;
+                    message_buffer[write_idx] = "M"; write_idx = write_idx + 1; 
                 end
-                3'b010: begin
-                    message_buffer_15B[0] <= "R";
-                    message_buffer_15B[1] <= "D";
-                    message_buffer_15B[2] <= "M";
+
+                3'b010: begin 
+                    message_buffer[write_idx] = "R"; write_idx = write_idx + 1;
+                    message_buffer[write_idx] = "D"; write_idx = write_idx + 1;
+                    message_buffer[write_idx] = "M"; write_idx = write_idx + 1; 
                 end
-                3'b011: begin
-                    message_buffer_15B[0] <= "E";
-                    message_buffer_15B[1] <= "N";
-                    message_buffer_15B[2] <= "D";
+
+                3'b011: begin 
+                    message_buffer[write_idx] = "E"; write_idx = write_idx + 1;
+                    message_buffer[write_idx] = "N"; write_idx = write_idx + 1;
+                    message_buffer[write_idx] = "D"; write_idx = write_idx + 1; 
                 end
-                3'b100: begin
-                    message_buffer_15B[0] <= "D";
-                    message_buffer_15B[1] <= "B";
-                    message_buffer_15B[2] <= "G";
+
+                3'b100: begin 
+                    message_buffer[write_idx] = "D"; write_idx = write_idx + 1;
+                    message_buffer[write_idx] = "B"; write_idx = write_idx + 1;
+                    message_buffer[write_idx] = "G"; write_idx = write_idx + 1; 
                 end
-                default: begin
-                    message_buffer_15B[0] <= "X";
-                    message_buffer_15B[1] <= "X";
-                    message_buffer_15B[2] <= "X";
+
+                default: begin 
+                    message_buffer[write_idx] = "X"; write_idx = write_idx + 1;
+                    message_buffer[write_idx] = "X"; write_idx = write_idx + 1;
+                    message_buffer[write_idx] = "X"; write_idx = write_idx + 1; 
                 end
             endcase
 
-            message_buffer_15B[3] <= "-";
+            // Append '-' separator
+            message_buffer[write_idx] = "-"; 
+            write_idx = write_idx + 1;
+				
+					// only if message_type == SLM RDP RPM
+			if (message_type == 3'b000 || message_type == 3'b001 || message_type == 3'b010) begin
 
-            // Location (PSU, FSU, WSU, SU, MU)
+            // Append Location
             case (location)
-                3'b000: begin
-                    message_buffer_15B[4] <= "P";
-                    message_buffer_15B[5] <= "S";
-                    message_buffer_15B[6] <= "U";
+                3'b000: begin 
+                    message_buffer[write_idx] = "P"; write_idx = write_idx + 1;
+                    message_buffer[write_idx] = "S"; write_idx = write_idx + 1;
+                    message_buffer[write_idx] = "U"; write_idx = write_idx + 1; 
                 end
-                3'b001: begin
-                    message_buffer_15B[4] <= "F";
-                    message_buffer_15B[5] <= "S";
-                    message_buffer_15B[6] <= "U";
+
+                3'b001: begin 
+                    message_buffer[write_idx] = "F"; write_idx = write_idx + 1;
+                    message_buffer[write_idx] = "S"; write_idx = write_idx + 1;
+                    message_buffer[write_idx] = "U"; write_idx = write_idx + 1; 
                 end
-                3'b010: begin
-                    message_buffer_15B[4] <= "W";
-                    message_buffer_15B[5] <= "S";
-                    message_buffer_15B[6] <= "U";
+
+                3'b010: begin 
+                    message_buffer[write_idx] = "W"; write_idx = write_idx + 1;
+                    message_buffer[write_idx] = "S"; write_idx = write_idx + 1;
+                    message_buffer[write_idx] = "U"; write_idx = write_idx + 1; 
                 end
-                3'b011: begin
-                    message_buffer_15B[4] <= "S";
-                    message_buffer_15B[5] <= "U";
-                    message_buffer_15B[6] <= " ";
+
+                3'b011: begin 
+                    message_buffer[write_idx] = "S"; write_idx = write_idx + 1;
+                    message_buffer[write_idx] = "U"; write_idx = write_idx + 1; 
                 end
-                3'b100: begin
-                    message_buffer_15B[4] <= "M";
-                    message_buffer_15B[5] <= "U";
-                    message_buffer_15B[6] <= " ";
+
+                3'b100: begin 
+                    message_buffer[write_idx] = "M"; write_idx = write_idx + 1;
+                    message_buffer[write_idx] = "U"; write_idx = write_idx + 1; 
                 end
-                default: begin
-                    message_buffer_15B[4] <= "X";
-                    message_buffer_15B[5] <= "X";
-                    message_buffer_15B[6] <= "X";
+
+                default: begin 
+                    message_buffer[write_idx] = "X"; write_idx = write_idx + 1;
+                    message_buffer[write_idx] = "X"; write_idx = write_idx + 1;
+                    message_buffer[write_idx] = "X"; write_idx = write_idx + 1; 
                 end
             endcase
 
-            // Number Data
-            message_buffer_15B[7] <= numData + "0";
-				message_buffer_15B[8] <= "-";
-            // Color Data
+            // Append Number Data
+            message_buffer[write_idx] = numData + "0";
+            write_idx = write_idx + 1;
+
+            // Append '-' separator
+            message_buffer[write_idx] = "-"; 
+            write_idx = write_idx + 1;
+			 end 
+			 
+			 if (message_type == 3'b000) begin
+
+
+				// only if message_type == SLM
+            // Append Color Data
             case (colorData)
-                2'b00: begin
-                    message_buffer_15B[9] <= "I";
-                    message_buffer_15B[10] <= "M";
-                end // IM
-                2'b01: begin
-                    message_buffer_15B[9] <= "I";
-                    message_buffer_15B[10] <= "S";
-                end // IS
-                2'b10: begin
-                    message_buffer_15B[9] <= "A";
-                    message_buffer_15B[10] <= "S";
-                end // AS
-                default: begin
-                    message_buffer_15B[9] <= "X";
-                    message_buffer_15B[10] <= "X";
+                2'b00: begin 
+                    message_buffer[write_idx] = "I"; write_idx = write_idx + 1;
+                    message_buffer[write_idx] = "M"; write_idx = write_idx + 1; 
+                end
+
+                2'b01: begin 
+                    message_buffer[write_idx] = "I"; write_idx = write_idx + 1;
+                    message_buffer[write_idx] = "S"; write_idx = write_idx + 1; 
+                end
+
+                2'b10: begin 
+                    message_buffer[write_idx] = "A"; write_idx = write_idx + 1;
+                    message_buffer[write_idx] = "S"; write_idx = write_idx + 1; 
+                end
+
+                default: begin 
+                    message_buffer[write_idx] = "X"; write_idx = write_idx + 1;
+                    message_buffer[write_idx] = "X"; write_idx = write_idx + 1; 
                 end
             endcase
+				
+            // Append '-' separator
+            message_buffer[write_idx] = "-"; 
+            write_idx = write_idx + 1;
+			end 
 
-            // End characters
-//            message_buffer_15B[10] <= "*";
-            message_buffer_15B[11] <= "#";
-//            message_buffer_15B[12] <= "-";
-//            message_buffer_15B[13] <= " ";
-//            message_buffer_15B[14] <= " ";
+            // Append '#' End Character
+            message_buffer[write_idx] = "#";
+            write_idx = write_idx + 1;
 
+            // Indicate that message is ready
             message_ready <= 1;
         end
     end
@@ -124,7 +163,7 @@ module message_formatter(
     // Output one byte at a time
     always @(posedge clk) begin
         if (message_ready) begin
-            message_byte <= message_buffer_15B[read_index];
+            message_byte <= message_buffer[read_index];
         end
     end
 

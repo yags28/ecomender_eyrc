@@ -2,15 +2,9 @@
 module nodeFinder(
     input clk,
     input msg_received,
-    output wire msgType,
-    output wire done,
     //message handle
     input [7:0] message_char,
     output wire [4:0] message_pos,
-    //reg write
-    output wire [1:0] reg_pos,
-    output wire [2:0] reg_data,
-    output wire reg_write_en,
     //travel related
     input wire travel_done,
     output wire run_done,
@@ -22,7 +16,12 @@ module nodeFinder(
 	 output wire pick_mode,
 	 input wire [3:0 ] curr_pos,
 	 output wire [1:0] data_out,
-	 output wire [3:0] dir_arr_len
+	 output wire [3:0] dir_arr_len,
+    input wire done,
+    input wire msgType,
+    input wire [1:0] reg_pos,
+    input wire [2:0] reg_data,
+    input wire reg_write_en
 );
 
 wire clk_slow;
@@ -33,17 +32,17 @@ Frequency_Scaling  #(.COUNTER_WIDTH(5), .MAX_COUNT(8)) fqs3_125hz (
 );
 
 
-reader rdr (
-    .clk(clk_slow),
-    .msg_received(msg_received),
-    .msgType(msgType),
-    .done(done),
-    .message_char(message_char),
-    .message_pos(message_pos),
-    .reg_pos(reg_pos),
-    .reg_data(reg_data),
-    .reg_write_en(reg_write_en)
-);
+// reader rdr (
+//     .clk(clk_slow),
+//     .msg_received(msg_received),
+//     .msgType(msgType),
+//     .done(done),
+//     .message_char(message_char),
+//     .message_pos(message_pos),
+//     .reg_pos(reg_pos),
+//     .reg_data(reg_data),
+//     .reg_write_en(reg_write_en)
+// );
 
 
 ship_master smt (
@@ -79,11 +78,11 @@ RISC_V_Wrapper uut (
         .cpu_DataAdr(),
         .cpu_ReadData(),
         .cpu_PC(),
-		  .pos_in(curr_pos),
-		  .data_out(data_out),
-		  .dir_array_aggr(),
-		  .i(dir_arr_len),
-		  .cpu_done(cpu_done)
+        .pos_in(curr_pos),
+        .data_out(data_out),
+        .dir_array_aggr(),
+        .i(dir_arr_len),
+        .cpu_done(cpu_done)
     );
 
 endmodule

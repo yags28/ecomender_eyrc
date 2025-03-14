@@ -14,18 +14,22 @@ module uart_mod(
     output reg go_go,
     input wire rx,
     output wire[7:0] msg_rec,
-	 input wire [1:0] col_curr,
-	 input wire run_done,
-	 input wire node_found,
-	 output wire [7:0] message_char,
-	 input wire [4:0] message_pos,
-	 output reg msg_completely_received,
-	 input wire nf_read_done,
-	 // Register to store the complete aggregated message
-    output reg [127:0] aggregated_message // 128-bit register to store the full message (16 bytes)
-//    output reg start_grip   // Gripper activation signal
-//    output reg pick_mode     // Pick (1) or Place (0) mode
-	 );
+    input wire [1:0] col_curr,
+    input wire run_done,
+    input wire node_found,
+    output wire [7:0] message_char,
+    input wire [4:0] message_pos,
+    output reg msg_completely_received,
+    input wire clear_rec_buf,
+    // Register to store the complete aggregated message
+    output reg [127:0] aggregated_message,
+    //reg write
+    output wire [1:0] reg_pos,
+    output wire [2:0] reg_data,
+    output wire reg_write_en, 
+    output wire msgType,
+    output wire done,  
+);
 
 reg tx_start;
 reg [7:0]data_bits;
@@ -43,45 +47,9 @@ reg [3:0] byte_counter;
 reg message_ready_prev;
 integer m;
 
-  // Message stack to store received messages (16 messages of 8 bits each)
-    reg [7:0] message_stack [0:23]; 
-    reg [5:0] stack_ptr = 0; // Stack pointer to track the current position
-
-
-uart_scale fqs3_125mhz (clk50M, clk_3_125Mhz);
- 
- always @(*) begin
-	for(k = 0; k < 8; k = k + 1 ) begin
-		Message_Received[k] <= msg_rec[7 - k];      
-   end
- end
- 
- integer i;
-	 reg [3:0] shift_index = 0;
-    always @(posedge clk_3_125Mhz) begin
-	 msg_completely_received <= 0;
-	if (rx_complete) begin
-            message_stack[stack_ptr][7:0] <= Message_Received[7:0];
-            if (stack_ptr < 23) 
-                stack_ptr <= stack_ptr + 1;  
-            else  
-                stack_ptr <= 0;
-				if (Message_Received == 8'h23)begin 
-					msg_completely_received <= 1;
-				end 
-//				else begin
-//				msg_completely_received <= 0;
-//				end
-        end  
-	 if (nf_read_done) begin
-		for (m = 0; m <= 23; m=m+1)begin
-				message_stack[m] <= 8'b0;
-//				msg_completely_received <= 0;
-		end	
-	stack_ptr <= 0;	
-		end
-    end
-
+// Message stack to store received messages (16 messages of 8 bits each)
+reg [7:0] message_stack [0:23]; 
+reg [5:0] stack_ptr = 0; // Stack pointer to track the current position
 
 reg rex_state;
 reg next_state;
@@ -90,17 +58,26 @@ wire message_ready;
 reg [1:0] uart_state, next_uart_state;
 reg [3:0] read_index;
 
+parameter IDLE = 2'b00;
+parameter ACTIVE = 2'b01;
+parameter WAITING = 2'b10;
+parameter MSG_IDLE = 2'b00;
+parameter MSG_PROCESSING = 2'b01;
+parameter MSG_COMPLETE = 2'b10;
+
+integer i;
+reg [3:0] shift_index = 0;
+
+uart_scale fqs3_125mhz (clk50M, clk_3_125Mhz);
+
 // Instantiate the UART transmitter (assuming proper implementation of uart_tx)
 uart_tx uart_tx_inst (
     .clk_3125(clk_3_125Mhz),				// changed from clk_1hz
     .parity_type(1'b0),            
     .tx_start(tx_start),				// send when message is complete
     .data(message_byte),			
-//	 .data_in(msg_rec),
-//	 .message_buffer(message_buffer),
     .tx(tx),
     .tx_done(tx_done)
-    //.state_counter(uart_tx_state)
     );
 	 
 uart_rx uart_rx_inst(
@@ -108,7 +85,7 @@ uart_rx uart_rx_inst(
     .rx(rx),
     .rx_msg(msg_rec),
     .rx_parity(),
-    .rx_complete(rx_complete)
+    .rx_complete(rx_complete)       // high for 1 clk pulse of 3125khz 
     );
 	 
 message_formatter message_formatter_inst (
@@ -123,74 +100,106 @@ message_formatter message_formatter_inst (
     .message_byte(message_byte),
     .message_ready(message_ready)
 );
-	 
-parameter IDLE = 2'b00;
-parameter ACTIVE = 2'b01;
-parameter WAITING = 2'b10;
-parameter MSG_IDLE = 2'b00;
-parameter MSG_PROCESSING = 2'b01;
-parameter MSG_COMPLETE = 2'b10;
+
+reader rdr (
+    .clk(clk_3_125Mhz),
+    .msg_received(msg_completely_received),
+    // output
+    .msgType(msgType),
+    .done(done),
+    // to get the message 
+    .message_char(message_char),    //input
+    .message_pos(message_pos),
+    // to write the message in reg
+    .reg_pos(reg_pos),
+    .reg_data(reg_data),
+    .reg_write_en(reg_write_en)
+);
 
 // Initialization
 initial begin
     tx_start <= 0;
     state_counter <= 0;
     start <= 0;
-	 timre_df <= 0;
-	 stack_ptr <= 0;
+    stack_ptr <= 0;
 end
 
-reg [21:0] timre_df;
-
-always @(posedge clk_3_125Mhz) begin
-	timre_df <= timre_df + 22'b1;
-end
-
-assign timer_dd = (!timre_df) ? 1 : 0;
-
-    // State transition process for recieve message
-//    always @(posedge clk_3_125Mhz) begin
-//        current_state <= next_state;
-//    end
-
-    always @(posedge clk_3_125Mhz) begin
-        case (rex_state)
-            IDLE: begin
-                if (Message_Received == 8'h23 ) begin			//msg_completely_received
-                    current_state <= ACTIVE;
-                end else begin
-                    current_state <= IDLE;
-                end
-            end
-            ACTIVE: begin
-                    current_state <= ACTIVE;
-            end
-            default: current_state <= IDLE;
-        endcase
+// combinational logic to flip the recieved character
+always @(*) begin
+    for(k = 0; k < 8; k = k + 1 ) begin
+        Message_Received[k] <= msg_rec[7 - k];      
     end
-	 
-	 
-		 ///////////////////////
-	 
-	 
+end
+// now Message_Received[7:0] holds the correct character 
 
-	 
-	 //////////////////////
-	 
-	     // Output logic process for recieve message
-    always @(*) begin
-        case (current_state)
-            IDLE: go_go <= 0;
-            ACTIVE: go_go <= 1;
-        endcase
-    end
-
-// this is just to store the previous led color used to send uart message
+// MESSAGE RECEIVING STATE MACHINE
 always @(posedge clk_3_125Mhz) begin
-	led_color_prev <= led_color;
+    msg_completely_received <= 0;
+    if (rx_complete) begin
+        // if a character is recieved, push it in the stack and increment the stack pointer
+        message_stack[stack_ptr][7:0] <= Message_Received[7:0];
+        if (stack_ptr < 23) 
+            stack_ptr <= stack_ptr + 1;  
+        else  
+            stack_ptr <= 0;
+        if (Message_Received == 8'h23)begin 
+            msg_completely_received <= 1;
+            stack_ptr <= 0;	                        // reset the stack pointer if message is completely received
+        end 
+        end  
+    if (clear_rec_buf) begin
+        // write 0 to the message stack and reset the stack pointer
+        for (m = 0; m <= 23; m=m+1) begin
+                message_stack[m] <= 8'b0;
+        end	
+        stack_ptr <= 0;	
+    end
 end
 
+assign message_char = message_stack[message_pos];
 
+/*
+if msgType = 1 then csl
+    then write to the csl queue in top module
+else msgType = 0 then sam
+    then write to the ship master 
+*/
+	 
+
+// reg [21:0] timre_df;
+
+// always @(posedge clk_3_125Mhz) begin
+// 	timre_df <= timre_df + 22'b1;
+// end
+
+// assign timer_dd = (!timre_df) ? 1 : 0;
+
+    // always @(posedge clk_3_125Mhz) begin
+    //     case (rex_state)
+    //         IDLE: begin
+    //             if (Message_Received == 8'h23 ) begin			//msg_completely_received
+    //                 current_state <= ACTIVE;
+    //             end else begin
+    //                 current_state <= IDLE;
+    //             end
+    //         end
+    //         ACTIVE: begin
+    //                 current_state <= ACTIVE;
+    //         end
+    //         default: current_state <= IDLE;
+    //     endcase
+    // end
+	 
+	//      // Output logic process for recieve message
+    // always @(*) begin
+    //     case (current_state)
+    //         IDLE: go_go <= 0;
+    //         ACTIVE: go_go <= 1;
+    //     endcase
+    // end
+
+
+// TRANSMISSION STATE MACHINE
 
 always @(posedge clk_3_125Mhz) begin
     case (msg_state)
@@ -230,7 +239,5 @@ always @(posedge clk_3_125Mhz) begin
         default: msg_state <= MSG_IDLE;
     endcase
 end
-
-assign message_char = message_stack[message_pos];
     
 endmodule				

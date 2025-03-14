@@ -58,12 +58,12 @@ end
 
 // Synchronous write logic
 always @(posedge clk) begin
-    if (reg_write_en) begin
+    if (reg_write_en && !msgType) begin
         message[reg_pos_in] <= reg_data;
     end
-    if (msgType && read_done) begin
-        current_unit <= reg_data[1:0];
-    end
+    // if (msgType && read_done) begin
+    //     current_unit <= reg_data[1:0];
+    // end
 end
 
 reg [2:0] state;
@@ -85,10 +85,7 @@ localparam WAIT_FOR_TRAVEL_DONE = 3'b101; // New waiting state
 localparam DONE      = 3'b110;
 
 always @(posedge clk) begin
-    if (msgType)begin 
-	 data <= message[0];
-	 end 
-	 else begin 
+    if (!msgType) begin 
 	 case (state)
         IDLE: begin // Idle state, wait for update
 				if(run_done)begin

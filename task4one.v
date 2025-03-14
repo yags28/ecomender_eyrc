@@ -53,8 +53,11 @@ wire [4:0] message_pos;
 wire msg_completely_received;
 wire nf_read_done;
 wire msgType;
+wire [1:0] reg_pos;
+wire [2:0] reg_data;
+wire reg_write_en;
 
-
+// initialize world_FSM here and send the signals 
 
 
 gripper gp(
@@ -112,11 +115,21 @@ uart_mod uart_inst (
 	.message_char(message_char),
 	.message_pos(message_pos),
 	.msg_completely_received(msg_completely_received),
-	.nf_read_done(nf_read_done)
-//	.pick_mode(pick_mode),
-//	.start_grip(start_grip)
+	.done(nf_read_done),
+	//reg write
+    .reg_pos(),
+    .reg_data(),
+    .reg_write_en(), 
+    .msgType(),
+    .done()
 );
 
+world_FSM wfsm(
+    .clk_3125(),
+    .csl_reg_data(),
+    .csl_reg_write_en(),
+    .msgType()
+);
 
 // lmd is lfa + motor driver. this instentiation is for the line follower module
 lmd imd_inst(

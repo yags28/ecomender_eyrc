@@ -105,8 +105,7 @@ always @(posedge clk) begin
             if (reg_pos >= 0) begin
 					 pick_mode = 1'b1;
                 if (message[reg_pos] >= MU1 && message[reg_pos] <= MU3) begin
-                    data <= 
-                    [1:0]; // Output the *POSITION*
+                    data <= reg_pos[1:0]; // Output the *POSITION*
                     node_select <= 0;     // Indicate it's a position
                     stack <= stack + 1;   // Increment stack (count of MUs)
                     reg_pos <= reg_pos - 1;

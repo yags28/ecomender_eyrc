@@ -155,32 +155,32 @@ lmd imd_inst(
 	.cpu_done(cpu_done)
 	);
 	
-	
-nodeFinder give_us_NODES(
-    .clk(clk),
-    .msg_received(msg_completely_received), // CHeck this 
-    .msgType(msgType), // o/p
-    .done(nf_read_done),   // o/p
-    //message handle
-    .message_char(message_char), // Check this 
-    .message_pos(message_pos),  // o/p 
-    //reg write
-    .reg_pos(),  //o/p 
-    .reg_data(),  // o/p 
-    .reg_write_en(),  // o/p 
-    //travel related
-    .travel_done(dest_reached),   //Needed 
-    .run_done(run_done),    //Prolly needed
-    .node_id(),  // o/p 
-   // output wire [2:0] scan_state,
-    .node_select(),  //o/p
-	 .start_cpu(),    // o/p 
-    .node_start(),    //o/p
-	 .cpu_done(cpu_done),       //o/p 
-	 .pick_mode(pick_mode),
-	 .curr_pos(curr_pos),
-	 .data_out(data_out),
-	 .dir_arr_len(dir_arr_len)
-);	
+//	
+//nodeFinder give_us_NODES(
+//    .clk(clk),
+//    .msg_received(msg_completely_received), // CHeck this 
+//    .msgType(msgType), // o/p
+//    .done(nf_read_done),   // o/p
+//    //message handle
+//    .message_char(message_char), // Check this 
+//    .message_pos(message_pos),  // o/p 
+//    //reg write
+//    .reg_pos(),  //o/p 
+//    .reg_data(),  // o/p 
+//    .reg_write_en(),  // o/p 
+//    //travel related
+//    .travel_done(dest_reached),   //Needed 
+//    .run_done(run_done),    //Prolly needed
+//    .node_id(),  // o/p 
+//   // output wire [2:0] scan_state,
+//    .node_select(),  //o/p
+//	 .start_cpu(),    // o/p 
+//    .node_start(),    //o/p
+//	 .cpu_done(cpu_done),       //o/p 
+//	 .pick_mode(pick_mode),
+//	 .curr_pos(curr_pos),
+//	 .data_out(data_out),
+//	 .dir_arr_len(dir_arr_len)
+//);	
 
 endmodule

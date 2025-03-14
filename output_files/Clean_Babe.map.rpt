@@ -1,5 +1,5 @@
 Analysis & Synthesis report for Clean_Babe
-Tue Feb 18 14:10:26 2025
+Wed Feb 19 12:41:43 2025
 Quartus Prime Version 20.1.1 Build 720 11/11/2020 SJ Lite Edition
 
 
@@ -10,16 +10,8 @@ Quartus Prime Version 20.1.1 Build 720 11/11/2020 SJ Lite Edition
   2. Analysis & Synthesis Summary
   3. Analysis & Synthesis Settings
   4. Parallel Compilation
-  5. Analysis & Synthesis Source Files Read
-  6. Analysis & Synthesis Resource Usage Summary
-  7. Analysis & Synthesis Resource Utilization by Entity
-  8. Registers Removed During Synthesis
-  9. General Register Statistics
- 10. Multiplexer Restructuring Statistics (Restructuring Performed)
- 11. Post-Synthesis Netlist Statistics for Top Partition
- 12. Elapsed Time Per Partition
- 13. Analysis & Synthesis Messages
- 14. Analysis & Synthesis Suppressed Messages
+  5. Analysis & Synthesis Messages
+  6. Analysis & Synthesis Suppressed Messages
 
 
 
@@ -46,20 +38,20 @@ https://fpgasoftware.intel.com/eula.
 +----------------------------------------------------------------------------------+
 ; Analysis & Synthesis Summary                                                     ;
 +------------------------------------+---------------------------------------------+
-; Analysis & Synthesis Status        ; Successful - Tue Feb 18 14:10:26 2025       ;
+; Analysis & Synthesis Status        ; Failed - Wed Feb 19 12:41:43 2025           ;
 ; Quartus Prime Version              ; 20.1.1 Build 720 11/11/2020 SJ Lite Edition ;
 ; Revision Name                      ; Clean_Babe                                  ;
-; Top-level Entity Name              ; led_controller                              ;
+; Top-level Entity Name              ; Clean_Babe                                  ;
 ; Family                             ; Cyclone IV E                                ;
-; Total logic elements               ; 58                                          ;
-;     Total combinational functions  ; 54                                          ;
-;     Dedicated logic registers      ; 37                                          ;
-; Total registers                    ; 37                                          ;
-; Total pins                         ; 21                                          ;
-; Total virtual pins                 ; 0                                           ;
-; Total memory bits                  ; 0                                           ;
-; Embedded Multiplier 9-bit elements ; 0                                           ;
-; Total PLLs                         ; 0                                           ;
+; Total logic elements               ; N/A until Partition Merge                   ;
+;     Total combinational functions  ; N/A until Partition Merge                   ;
+;     Dedicated logic registers      ; N/A until Partition Merge                   ;
+; Total registers                    ; N/A until Partition Merge                   ;
+; Total pins                         ; N/A until Partition Merge                   ;
+; Total virtual pins                 ; N/A until Partition Merge                   ;
+; Total memory bits                  ; N/A until Partition Merge                   ;
+; Embedded Multiplier 9-bit elements ; N/A until Partition Merge                   ;
+; Total PLLs                         ; N/A until Partition Merge                   ;
 +------------------------------------+---------------------------------------------+
 
 
@@ -69,7 +61,7 @@ https://fpgasoftware.intel.com/eula.
 ; Option                                                           ; Setting            ; Default Value      ;
 +------------------------------------------------------------------+--------------------+--------------------+
 ; Device                                                           ; EP4CE22F17C6       ;                    ;
-; Top-level entity name                                            ; led_controller     ; Clean_Babe         ;
+; Top-level entity name                                            ; Clean_Babe         ; Clean_Babe         ;
 ; Family name                                                      ; Cyclone IV E       ; Cyclone V          ;
 ; Use smart compilation                                            ; Off                ; Off                ;
 ; Enable parallel Assembler and Timing Analyzer during compilation ; On                 ; On                 ;
@@ -154,139 +146,15 @@ https://fpgasoftware.intel.com/eula.
 +----------------------------+-------------+
 ; Processors                 ; Number      ;
 +----------------------------+-------------+
-; Number detected on machine ; 20          ;
-; Maximum allowed            ; 14          ;
+; Number detected on machine ; 12          ;
+; Maximum allowed            ; 12          ;
 ;                            ;             ;
 ; Average used               ; 1.00        ;
-; Maximum used               ; 14          ;
+; Maximum used               ; 1           ;
 ;                            ;             ;
 ; Usage by Processor         ; % Time Used ;
 ;     Processor 1            ; 100.0%      ;
-;     Processors 2-14        ;   0.0%      ;
 +----------------------------+-------------+
-
-
-+---------------------------------------------------------------------------------------------------------------------------------------+
-; Analysis & Synthesis Source Files Read                                                                                                ;
-+----------------------------------+-----------------+------------------------+-----------------------------------------------+---------+
-; File Name with User-Entered Path ; Used in Netlist ; File Type              ; File Name with Absolute Path                  ; Library ;
-+----------------------------------+-----------------+------------------------+-----------------------------------------------+---------+
-; LED_CONTROLLER/led_controller.v  ; yes             ; User Verilog HDL File  ; D:/Clean_baby/LED_CONTROLLER/led_controller.v ;         ;
-+----------------------------------+-----------------+------------------------+-----------------------------------------------+---------+
-
-
-+---------------------------------------------------------+
-; Analysis & Synthesis Resource Usage Summary             ;
-+---------------------------------------------+-----------+
-; Resource                                    ; Usage     ;
-+---------------------------------------------+-----------+
-; Estimated Total logic elements              ; 58        ;
-;                                             ;           ;
-; Total combinational functions               ; 54        ;
-; Logic element usage by number of LUT inputs ;           ;
-;     -- 4 input functions                    ; 9         ;
-;     -- 3 input functions                    ; 2         ;
-;     -- <=2 input functions                  ; 43        ;
-;                                             ;           ;
-; Logic elements by mode                      ;           ;
-;     -- normal mode                          ; 30        ;
-;     -- arithmetic mode                      ; 24        ;
-;                                             ;           ;
-; Total registers                             ; 37        ;
-;     -- Dedicated logic registers            ; 37        ;
-;     -- I/O registers                        ; 0         ;
-;                                             ;           ;
-; I/O pins                                    ; 21        ;
-;                                             ;           ;
-; Embedded Multiplier 9-bit elements          ; 0         ;
-;                                             ;           ;
-; Maximum fan-out node                        ; clk~input ;
-; Maximum fan-out                             ; 37        ;
-; Total fan-out                               ; 301       ;
-; Average fan-out                             ; 2.26      ;
-+---------------------------------------------+-----------+
-
-
-+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-; Analysis & Synthesis Resource Utilization by Entity                                                                                                                                                         ;
-+----------------------------+---------------------+---------------------------+-------------+--------------+---------+-----------+------+--------------+---------------------+----------------+--------------+
-; Compilation Hierarchy Node ; Combinational ALUTs ; Dedicated Logic Registers ; Memory Bits ; DSP Elements ; DSP 9x9 ; DSP 18x18 ; Pins ; Virtual Pins ; Full Hierarchy Name ; Entity Name    ; Library Name ;
-+----------------------------+---------------------+---------------------------+-------------+--------------+---------+-----------+------+--------------+---------------------+----------------+--------------+
-; |led_controller            ; 54 (54)             ; 37 (37)                   ; 0           ; 0            ; 0       ; 0         ; 21   ; 0            ; |led_controller     ; led_controller ; work         ;
-+----------------------------+---------------------+---------------------------+-------------+--------------+---------+-----------+------+--------------+---------------------+----------------+--------------+
-Note: For table entries with two numbers listed, the numbers in parentheses indicate the number of resources of the given type used by the specific entity alone. The numbers listed outside of parentheses indicate the total resources of the given type used by the specific entity and all of its sub-entities in the hierarchy.
-
-
-+--------------------------------------------------------------------------------+
-; Registers Removed During Synthesis                                             ;
-+---------------------------------------+----------------------------------------+
-; Register name                         ; Reason for Removal                     ;
-+---------------------------------------+----------------------------------------+
-; led4[0]~reg0                          ; Stuck at GND due to stuck port data_in ;
-; led4[3]~reg0                          ; Stuck at GND due to stuck port data_in ;
-; Total Number of Removed Registers = 2 ;                                        ;
-+---------------------------------------+----------------------------------------+
-
-
-+------------------------------------------------------+
-; General Register Statistics                          ;
-+----------------------------------------------+-------+
-; Statistic                                    ; Value ;
-+----------------------------------------------+-------+
-; Total registers                              ; 37    ;
-; Number of registers using Synchronous Clear  ; 25    ;
-; Number of registers using Synchronous Load   ; 0     ;
-; Number of registers using Asynchronous Clear ; 9     ;
-; Number of registers using Asynchronous Load  ; 0     ;
-; Number of registers using Clock Enable       ; 34    ;
-; Number of registers using Preset             ; 0     ;
-+----------------------------------------------+-------+
-
-
-+----------------------------------------------------------------------------------------------------------------------------------------------+
-; Multiplexer Restructuring Statistics (Restructuring Performed)                                                                               ;
-+--------------------+-----------+---------------+----------------------+------------------------+------------+--------------------------------+
-; Multiplexer Inputs ; Bus Width ; Baseline Area ; Area if Restructured ; Saving if Restructured ; Registered ; Example Multiplexer Output     ;
-+--------------------+-----------+---------------+----------------------+------------------------+------------+--------------------------------+
-; 4:1                ; 3 bits    ; 6 LEs         ; 3 LEs                ; 3 LEs                  ; Yes        ; |led_controller|store_color[8] ;
-; 4:1                ; 3 bits    ; 6 LEs         ; 3 LEs                ; 3 LEs                  ; Yes        ; |led_controller|store_color[3] ;
-; 4:1                ; 3 bits    ; 6 LEs         ; 3 LEs                ; 3 LEs                  ; Yes        ; |led_controller|store_color[1] ;
-; 3:1                ; 25 bits   ; 50 LEs        ; 25 LEs               ; 25 LEs                 ; Yes        ; |led_controller|msg_counter[9] ;
-+--------------------+-----------+---------------+----------------------+------------------------+------------+--------------------------------+
-
-
-+-----------------------------------------------------+
-; Post-Synthesis Netlist Statistics for Top Partition ;
-+-----------------------+-----------------------------+
-; Type                  ; Count                       ;
-+-----------------------+-----------------------------+
-; boundary_port         ; 21                          ;
-; cycloneiii_ff         ; 37                          ;
-;     ENA CLR           ; 9                           ;
-;     ENA SCLR          ; 25                          ;
-;     plain             ; 3                           ;
-; cycloneiii_lcell_comb ; 55                          ;
-;     arith             ; 24                          ;
-;         2 data inputs ; 24                          ;
-;     normal            ; 31                          ;
-;         0 data inputs ; 1                           ;
-;         1 data inputs ; 1                           ;
-;         2 data inputs ; 18                          ;
-;         3 data inputs ; 2                           ;
-;         4 data inputs ; 9                           ;
-;                       ;                             ;
-; Max LUT depth         ; 4.00                        ;
-; Average LUT depth     ; 2.46                        ;
-+-----------------------+-----------------------------+
-
-
-+-------------------------------+
-; Elapsed Time Per Partition    ;
-+----------------+--------------+
-; Partition Name ; Elapsed Time ;
-+----------------+--------------+
-; Top            ; 00:00:00     ;
-+----------------+--------------+
 
 
 +-------------------------------+
@@ -295,124 +163,120 @@ Note: For table entries with two numbers listed, the numbers in parentheses indi
 Info: *******************************************************************
 Info: Running Quartus Prime Analysis & Synthesis
     Info: Version 20.1.1 Build 720 11/11/2020 SJ Lite Edition
-    Info: Processing started: Tue Feb 18 14:10:18 2025
+    Info: Processing started: Wed Feb 19 12:41:28 2025
 Info: Command: quartus_map --read_settings_files=on --write_settings_files=off Clean_Babe -c Clean_Babe
 Warning (18236): Number of processors has not been specified which may cause overloading on shared machines.  Set the global assignment NUM_PARALLEL_PROCESSORS in your QSF to an appropriate value for best performance.
-Info (20030): Parallel compilation is enabled and will use 14 of the 14 processors detected
+Info (20030): Parallel compilation is enabled and will use 12 of the 12 processors detected
+Info (12021): Found 1 design units, including 1 entities, in source file world_fsm.v
+    Info (12023): Found entity 1: world_FSM File: C:/Users/Anuya/manthan/eyantra/clean_Babe/world_FSM.v Line: 1
+Info (12021): Found 1 design units, including 1 entities, in source file uart/reader.v
+    Info (12023): Found entity 1: reader File: C:/Users/Anuya/manthan/eyantra/clean_Babe/UART/reader.v Line: 1
 Info (12021): Found 1 design units, including 1 entities, in source file color_detection/colordet.v
-    Info (12023): Found entity 1: colordet File: D:/Clean_baby/COLOR_DETECTION/colordet.v Line: 20
+    Info (12023): Found entity 1: colordet File: C:/Users/Anuya/manthan/eyantra/clean_Babe/COLOR_DETECTION/colordet.v Line: 20
 Info (12021): Found 1 design units, including 1 entities, in source file color_detection/color_detection.v
-    Info (12023): Found entity 1: color_detection File: D:/Clean_baby/COLOR_DETECTION/color_detection.v Line: 9
-Warning (10275): Verilog HDL Module Instantiation warning at task4one.v(71): ignored dangling comma in List of Port Connections File: D:/Clean_baby/task4one.v Line: 71
+    Info (12023): Found entity 1: color_detection File: C:/Users/Anuya/manthan/eyantra/clean_Babe/COLOR_DETECTION/color_detection.v Line: 9
+Warning (10275): Verilog HDL Module Instantiation warning at task4one.v(74): ignored dangling comma in List of Port Connections File: C:/Users/Anuya/manthan/eyantra/clean_Babe/task4one.v Line: 74
 Info (12021): Found 1 design units, including 1 entities, in source file task4one.v
-    Info (12023): Found entity 1: task4one File: D:/Clean_baby/task4one.v Line: 9
+    Info (12023): Found entity 1: task4one File: C:/Users/Anuya/manthan/eyantra/clean_Babe/task4one.v Line: 9
 Info (12021): Found 1 design units, including 1 entities, in source file freqscaling.v
-    Info (12023): Found entity 1: Frequency_Scaling File: D:/Clean_baby/freqscaling.v Line: 14
+    Info (12023): Found entity 1: Frequency_Scaling File: C:/Users/Anuya/manthan/eyantra/clean_Babe/freqscaling.v Line: 14
 Info (12021): Found 1 design units, including 1 entities, in source file uart/uart_tx.v
-    Info (12023): Found entity 1: uart_tx File: D:/Clean_baby/UART/uart_tx.v Line: 3
+    Info (12023): Found entity 1: uart_tx File: C:/Users/Anuya/manthan/eyantra/clean_Babe/UART/uart_tx.v Line: 3
 Info (12021): Found 1 design units, including 1 entities, in source file uart/uart_scale.v
-    Info (12023): Found entity 1: uart_scale File: D:/Clean_baby/UART/uart_scale.v Line: 1
+    Info (12023): Found entity 1: uart_scale File: C:/Users/Anuya/manthan/eyantra/clean_Babe/UART/uart_scale.v Line: 1
 Info (12021): Found 1 design units, including 1 entities, in source file uart/uart_rx.v
-    Info (12023): Found entity 1: uart_rx File: D:/Clean_baby/UART/uart_rx.v Line: 2
+    Info (12023): Found entity 1: uart_rx File: C:/Users/Anuya/manthan/eyantra/clean_Babe/UART/uart_rx.v Line: 2
 Info (12021): Found 1 design units, including 1 entities, in source file uart/uart_mod.v
-    Info (12023): Found entity 1: uart_mod File: D:/Clean_baby/UART/uart_mod.v Line: 9
+    Info (12023): Found entity 1: uart_mod File: C:/Users/Anuya/manthan/eyantra/clean_Babe/UART/uart_mod.v Line: 9
 Info (12021): Found 1 design units, including 1 entities, in source file uart/message_formatter.v
-    Info (12023): Found entity 1: message_formatter File: D:/Clean_baby/UART/message_formatter.v Line: 1
+    Info (12023): Found entity 1: message_formatter File: C:/Users/Anuya/manthan/eyantra/clean_Babe/UART/message_formatter.v Line: 3
 Info (12021): Found 1 design units, including 1 entities, in source file node_finder/ship_master.v
-    Info (12023): Found entity 1: ship_master File: D:/Clean_baby/NODE_FINDER/ship_master.v Line: 2
-Info (12021): Found 1 design units, including 1 entities, in source file node_finder/reader.v
-    Info (12023): Found entity 1: reader File: D:/Clean_baby/NODE_FINDER/reader.v Line: 1
+    Info (12023): Found entity 1: ship_master File: C:/Users/Anuya/manthan/eyantra/clean_Babe/NODE_FINDER/ship_master.v Line: 2
 Info (12021): Found 1 design units, including 1 entities, in source file node_finder/nodefinder.v
-    Info (12023): Found entity 1: nodeFinder File: D:/Clean_baby/NODE_FINDER/nodeFinder.v Line: 2
+    Info (12023): Found entity 1: nodeFinder File: C:/Users/Anuya/manthan/eyantra/clean_Babe/NODE_FINDER/nodeFinder.v Line: 2
 Info (12021): Found 1 design units, including 1 entities, in source file node_finder/interpretor.v
-    Info (12023): Found entity 1: interpretor File: D:/Clean_baby/NODE_FINDER/interpretor.v Line: 1
+    Info (12023): Found entity 1: interpretor File: C:/Users/Anuya/manthan/eyantra/clean_Babe/NODE_FINDER/interpretor.v Line: 1
 Info (12021): Found 1 design units, including 1 entities, in source file lmd/upper_mdr_driver.v
-    Info (12023): Found entity 1: motor_driver_upper File: D:/Clean_baby/LMD/upper_mdr_driver.v Line: 12
+    Info (12023): Found entity 1: motor_driver_upper File: C:/Users/Anuya/manthan/eyantra/clean_Babe/LMD/upper_mdr_driver.v Line: 12
 Info (12021): Found 1 design units, including 1 entities, in source file lmd/lower_mdr_driver.v
-    Info (12023): Found entity 1: motor_driver_lower File: D:/Clean_baby/LMD/lower_mdr_driver.v Line: 9
+    Info (12023): Found entity 1: motor_driver_lower File: C:/Users/Anuya/manthan/eyantra/clean_Babe/LMD/lower_mdr_driver.v Line: 9
 Info (12021): Found 1 design units, including 1 entities, in source file lmd/lmd.v
-    Info (12023): Found entity 1: lmd File: D:/Clean_baby/LMD/lmd.v Line: 10
+    Info (12023): Found entity 1: lmd File: C:/Users/Anuya/manthan/eyantra/clean_Babe/LMD/lmd.v Line: 10
 Info (12021): Found 1 design units, including 1 entities, in source file lmd/lfa_assembly.v
-    Info (12023): Found entity 1: LFA_asssembly File: D:/Clean_baby/LMD/lfa_assembly.v Line: 9
+    Info (12023): Found entity 1: LFA_asssembly File: C:/Users/Anuya/manthan/eyantra/clean_Babe/LMD/lfa_assembly.v Line: 9
 Info (12021): Found 1 design units, including 1 entities, in source file lmd/deviationcontrol.v
-    Info (12023): Found entity 1: DeviationControl File: D:/Clean_baby/LMD/DeviationControl.v Line: 9
+    Info (12023): Found entity 1: DeviationControl File: C:/Users/Anuya/manthan/eyantra/clean_Babe/LMD/DeviationControl.v Line: 9
 Info (12021): Found 1 design units, including 1 entities, in source file lmd/adc_controller.v
-    Info (12023): Found entity 1: ADC_Controller File: D:/Clean_baby/LMD/ADC_controller.v Line: 19
+    Info (12023): Found entity 1: ADC_Controller File: C:/Users/Anuya/manthan/eyantra/clean_Babe/LMD/ADC_controller.v Line: 19
 Info (12021): Found 1 design units, including 1 entities, in source file led_controller/led_controller.v
-    Info (12023): Found entity 1: led_controller File: D:/Clean_baby/LED_CONTROLLER/led_controller.v Line: 1
+    Info (12023): Found entity 1: led_controller File: C:/Users/Anuya/manthan/eyantra/clean_Babe/LED_CONTROLLER/led_controller.v Line: 1
 Info (12021): Found 1 design units, including 1 entities, in source file gripper/servo_module.v
-    Info (12023): Found entity 1: gripper File: D:/Clean_baby/GRIPPER/servo_module.v Line: 1
+    Info (12023): Found entity 1: gripper File: C:/Users/Anuya/manthan/eyantra/clean_Babe/GRIPPER/servo_module.v Line: 1
 Info (12021): Found 1 design units, including 1 entities, in source file gripper/ir_sensor.v
-    Info (12023): Found entity 1: ir_sensor File: D:/Clean_baby/GRIPPER/ir_sensor.v Line: 1
+    Info (12023): Found entity 1: ir_sensor File: C:/Users/Anuya/manthan/eyantra/clean_Babe/GRIPPER/ir_sensor.v Line: 1
 Info (12021): Found 1 design units, including 1 entities, in source file cpu/verilog_programs/t1c_riscv_cpu.v
-    Info (12023): Found entity 1: t1c_riscv_cpu File: D:/Clean_baby/CPU/Verilog_programs/t1c_riscv_cpu.v Line: 4
+    Info (12023): Found entity 1: t1c_riscv_cpu File: C:/Users/Anuya/manthan/eyantra/clean_Babe/CPU/Verilog_programs/t1c_riscv_cpu.v Line: 4
 Info (12021): Found 1 design units, including 1 entities, in source file cpu/verilog_programs/riscv_cpu.v
-    Info (12023): Found entity 1: riscv_cpu File: D:/Clean_baby/CPU/Verilog_programs/riscv_cpu.v Line: 4
+    Info (12023): Found entity 1: riscv_cpu File: C:/Users/Anuya/manthan/eyantra/clean_Babe/CPU/Verilog_programs/riscv_cpu.v Line: 4
 Info (12021): Found 1 design units, including 1 entities, in source file cpu/verilog_programs/risc_v_wrapper.v
-    Info (12023): Found entity 1: RISC_V_Wrapper File: D:/Clean_baby/CPU/Verilog_programs/RISC_V_Wrapper.v Line: 1
+    Info (12023): Found entity 1: RISC_V_Wrapper File: C:/Users/Anuya/manthan/eyantra/clean_Babe/CPU/Verilog_programs/RISC_V_Wrapper.v Line: 1
 Info (12021): Found 1 design units, including 1 entities, in source file cpu/verilog_programs/instr_mem.v
-    Info (12023): Found entity 1: instr_mem File: D:/Clean_baby/CPU/Verilog_programs/instr_mem.v Line: 4
+    Info (12023): Found entity 1: instr_mem File: C:/Users/Anuya/manthan/eyantra/clean_Babe/CPU/Verilog_programs/instr_mem.v Line: 4
 Info (12021): Found 1 design units, including 1 entities, in source file cpu/verilog_programs/data_mem.v
-    Info (12023): Found entity 1: data_mem File: D:/Clean_baby/CPU/Verilog_programs/data_mem.v Line: 1
+    Info (12023): Found entity 1: data_mem File: C:/Users/Anuya/manthan/eyantra/clean_Babe/CPU/Verilog_programs/data_mem.v Line: 1
 Info (12021): Found 1 design units, including 1 entities, in source file cpu/components_clened/components/reset_ff.v
-    Info (12023): Found entity 1: reset_ff File: D:/Clean_baby/CPU/components_clened/components/reset_ff.v Line: 4
+    Info (12023): Found entity 1: reset_ff File: C:/Users/Anuya/manthan/eyantra/clean_Babe/CPU/components_clened/components/reset_ff.v Line: 4
 Info (12021): Found 1 design units, including 1 entities, in source file cpu/components_clened/components/reg_file.v
-    Info (12023): Found entity 1: reg_file File: D:/Clean_baby/CPU/components_clened/components/reg_file.v Line: 8
+    Info (12023): Found entity 1: reg_file File: C:/Users/Anuya/manthan/eyantra/clean_Babe/CPU/components_clened/components/reg_file.v Line: 8
 Info (12021): Found 1 design units, including 1 entities, in source file cpu/components_clened/components/mux4.v
-    Info (12023): Found entity 1: mux4 File: D:/Clean_baby/CPU/components_clened/components/mux4.v Line: 4
+    Info (12023): Found entity 1: mux4 File: C:/Users/Anuya/manthan/eyantra/clean_Babe/CPU/components_clened/components/mux4.v Line: 4
 Info (12021): Found 1 design units, including 1 entities, in source file cpu/components_clened/components/mux3.v
-    Info (12023): Found entity 1: mux3 File: D:/Clean_baby/CPU/components_clened/components/mux3.v Line: 4
+    Info (12023): Found entity 1: mux3 File: C:/Users/Anuya/manthan/eyantra/clean_Babe/CPU/components_clened/components/mux3.v Line: 4
 Info (12021): Found 1 design units, including 1 entities, in source file cpu/components_clened/components/mux2.v
-    Info (12023): Found entity 1: mux2 File: D:/Clean_baby/CPU/components_clened/components/mux2.v Line: 4
+    Info (12023): Found entity 1: mux2 File: C:/Users/Anuya/manthan/eyantra/clean_Babe/CPU/components_clened/components/mux2.v Line: 4
 Info (12021): Found 1 design units, including 1 entities, in source file cpu/components_clened/components/main_decoder.v
-    Info (12023): Found entity 1: main_decoder File: D:/Clean_baby/CPU/components_clened/components/main_decoder.v Line: 4
+    Info (12023): Found entity 1: main_decoder File: C:/Users/Anuya/manthan/eyantra/clean_Babe/CPU/components_clened/components/main_decoder.v Line: 4
 Info (12021): Found 1 design units, including 1 entities, in source file cpu/components_clened/components/imm_extend.v
-    Info (12023): Found entity 1: imm_extend File: D:/Clean_baby/CPU/components_clened/components/imm_extend.v Line: 3
+    Info (12023): Found entity 1: imm_extend File: C:/Users/Anuya/manthan/eyantra/clean_Babe/CPU/components_clened/components/imm_extend.v Line: 3
 Info (12021): Found 1 design units, including 1 entities, in source file cpu/components_clened/components/datapath.v
-    Info (12023): Found entity 1: datapath File: D:/Clean_baby/CPU/components_clened/components/datapath.v Line: 3
+    Info (12023): Found entity 1: datapath File: C:/Users/Anuya/manthan/eyantra/clean_Babe/CPU/components_clened/components/datapath.v Line: 3
 Info (12021): Found 1 design units, including 1 entities, in source file cpu/components_clened/components/controller.v
-    Info (12023): Found entity 1: controller File: D:/Clean_baby/CPU/components_clened/components/controller.v Line: 4
+    Info (12023): Found entity 1: controller File: C:/Users/Anuya/manthan/eyantra/clean_Babe/CPU/components_clened/components/controller.v Line: 4
 Info (12021): Found 1 design units, including 1 entities, in source file cpu/components_clened/components/brancher.v
-    Info (12023): Found entity 1: brancher File: D:/Clean_baby/CPU/components_clened/components/brancher.v Line: 3
+    Info (12023): Found entity 1: brancher File: C:/Users/Anuya/manthan/eyantra/clean_Babe/CPU/components_clened/components/brancher.v Line: 3
 Info (12021): Found 1 design units, including 1 entities, in source file cpu/components_clened/components/alu_decoder.v
-    Info (12023): Found entity 1: alu_decoder File: D:/Clean_baby/CPU/components_clened/components/alu_decoder.v Line: 4
+    Info (12023): Found entity 1: alu_decoder File: C:/Users/Anuya/manthan/eyantra/clean_Babe/CPU/components_clened/components/alu_decoder.v Line: 4
 Info (12021): Found 1 design units, including 1 entities, in source file cpu/components_clened/components/alu.v
-    Info (12023): Found entity 1: alu File: D:/Clean_baby/CPU/components_clened/components/alu.v Line: 35
+    Info (12023): Found entity 1: alu File: C:/Users/Anuya/manthan/eyantra/clean_Babe/CPU/components_clened/components/alu.v Line: 35
 Info (12021): Found 1 design units, including 1 entities, in source file cpu/components_clened/components/adder.v
-    Info (12023): Found entity 1: adder File: D:/Clean_baby/CPU/components_clened/components/adder.v Line: 4
-Info (12021): Found 1 design units, including 1 entities, in source file color_detection/stable_color.v
-    Info (12023): Found entity 1: Stable_Color File: D:/Clean_baby/COLOR_DETECTION/Stable_Color.v Line: 1
-Warning (10236): Verilog HDL Implicit Net warning at uart_mod.v(51): created implicit net for "clk_3_125Mhz" File: D:/Clean_baby/UART/uart_mod.v Line: 51
-Warning (10236): Verilog HDL Implicit Net warning at uart_mod.v(149): created implicit net for "timer_dd" File: D:/Clean_baby/UART/uart_mod.v Line: 149
-Warning (10236): Verilog HDL Implicit Net warning at nodeFinder.v(74): created implicit net for "reset_internal" File: D:/Clean_baby/NODE_FINDER/nodeFinder.v Line: 74
-Warning (10236): Verilog HDL Implicit Net warning at lmd.v(103): created implicit net for "turn_register" File: D:/Clean_baby/LMD/lmd.v Line: 103
-Warning (10236): Verilog HDL Implicit Net warning at servo_module.v(44): created implicit net for "clk_out_s" File: D:/Clean_baby/GRIPPER/servo_module.v Line: 44
-Warning (10236): Verilog HDL Implicit Net warning at riscv_cpu.v(20): created implicit net for "PCSrc" File: D:/Clean_baby/CPU/Verilog_programs/riscv_cpu.v Line: 20
-Warning (10236): Verilog HDL Implicit Net warning at main_decoder.v(34): created implicit net for "Branch" File: D:/Clean_baby/CPU/components_clened/components/main_decoder.v Line: 34
-Warning (10236): Verilog HDL Implicit Net warning at main_decoder.v(34): created implicit net for "Jump" File: D:/Clean_baby/CPU/components_clened/components/main_decoder.v Line: 34
-Info (12127): Elaborating entity "led_controller" for the top level hierarchy
-Warning (10230): Verilog HDL assignment warning at led_controller.v(55): truncated value with size 32 to match size of target (25) File: D:/Clean_baby/LED_CONTROLLER/led_controller.v Line: 55
-Warning (13024): Output pins are stuck at VCC or GND
-    Warning (13410): Pin "led4[0]" is stuck at GND File: D:/Clean_baby/LED_CONTROLLER/led_controller.v Line: 48
-    Warning (13410): Pin "led4[3]" is stuck at GND File: D:/Clean_baby/LED_CONTROLLER/led_controller.v Line: 48
-Info (286030): Timing-Driven Synthesis is running
-Info (144001): Generated suppressed messages file D:/Clean_baby/output_files/Clean_Babe.map.smsg
-Info (16010): Generating hard_block partition "hard_block:auto_generated_inst"
-    Info (16011): Adding 0 node(s), including 0 DDIO, 0 PLL, 0 transceiver and 0 LCELL
-Info (21057): Implemented 83 device resources after synthesis - the final resource count might be different
-    Info (21058): Implemented 8 input pins
-    Info (21059): Implemented 13 output pins
-    Info (21061): Implemented 62 logic cells
-Info: Quartus Prime Analysis & Synthesis was successful. 0 errors, 14 warnings
-    Info: Peak virtual memory: 4828 megabytes
-    Info: Processing ended: Tue Feb 18 14:10:26 2025
-    Info: Elapsed time: 00:00:08
-    Info: Total CPU time (on all processors): 00:00:16
+    Info (12023): Found entity 1: adder File: C:/Users/Anuya/manthan/eyantra/clean_Babe/CPU/components_clened/components/adder.v Line: 4
+Info (12021): Found 1 design units, including 1 entities, in source file clock_scaler.v
+    Info (12023): Found entity 1: clock_scaler File: C:/Users/Anuya/manthan/eyantra/clean_Babe/clock_scaler.v Line: 1
+Warning (10236): Verilog HDL Implicit Net warning at color_detection.v(25): created implicit net for "clk_50m" File: C:/Users/Anuya/manthan/eyantra/clean_Babe/COLOR_DETECTION/color_detection.v Line: 25
+Warning (10236): Verilog HDL Implicit Net warning at lmd.v(98): created implicit net for "turn_register" File: C:/Users/Anuya/manthan/eyantra/clean_Babe/LMD/lmd.v Line: 98
+Warning (10236): Verilog HDL Implicit Net warning at riscv_cpu.v(20): created implicit net for "PCSrc" File: C:/Users/Anuya/manthan/eyantra/clean_Babe/CPU/Verilog_programs/riscv_cpu.v Line: 20
+Warning (10236): Verilog HDL Implicit Net warning at main_decoder.v(34): created implicit net for "Branch" File: C:/Users/Anuya/manthan/eyantra/clean_Babe/CPU/components_clened/components/main_decoder.v Line: 34
+Warning (10236): Verilog HDL Implicit Net warning at main_decoder.v(34): created implicit net for "Jump" File: C:/Users/Anuya/manthan/eyantra/clean_Babe/CPU/components_clened/components/main_decoder.v Line: 34
+Warning (12125): Using design file clean_babe.bdf, which is not specified as a design file for the current project, but contains definitions for 1 design units and 1 entities in project
+    Info (12023): Found entity 1: Clean_Babe
+Info (12127): Elaborating entity "Clean_Babe" for the top level hierarchy
+Error (275023): Width mismatch in led_MI[2..0] -- source is ""led4[3..0]" (ID led_controller:inst1)"
+Error (275024): Width mismatch in port "SP[31..0]" of instance "inst8" and type RISC_V_Wrapper -- source is ""node_start[5..0]" (ID ship_master:inst13)"
+Error (275024): Width mismatch in port "EP[31..0]" of instance "inst8" and type RISC_V_Wrapper -- source is ""node_id[5..0]" (ID ship_master:inst13)"
+Error (275044): Port "start_grip" of type gripper of instance "inst" is missing source signal
+Error (275024): Width mismatch in port "stable_color[2..0]" of instance "inst1" and type led_controller -- source is ""Stable_Color[1..0]" (ID color_detection:inst5)"
+Error (12153): Can't elaborate top-level user hierarchy
+Info (144001): Generated suppressed messages file C:/Users/Anuya/manthan/eyantra/clean_Babe/output_files/Clean_Babe.map.smsg
+Error: Quartus Prime Analysis & Synthesis was unsuccessful. 6 errors, 8 warnings
+    Error: Peak virtual memory: 4709 megabytes
+    Error: Processing ended: Wed Feb 19 12:41:44 2025
+    Error: Elapsed time: 00:00:16
+    Error: Total CPU time (on all processors): 00:00:37
 
 
 +------------------------------------------+
 ; Analysis & Synthesis Suppressed Messages ;
 +------------------------------------------+
-The suppressed messages can be found in D:/Clean_baby/output_files/Clean_Babe.map.smsg.
+The suppressed messages can be found in C:/Users/Anuya/manthan/eyantra/clean_Babe/output_files/Clean_Babe.map.smsg.
 
 

@@ -6,3 +6,5 @@ incremental_db/*
 
 # Ignore all files ending with .qsf, regardless of their location
 *.qsf
+
+output_files/*

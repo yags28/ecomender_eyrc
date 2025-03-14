@@ -28,7 +28,7 @@ module uart_mod(
     output wire [2:0] reg_data,
     output wire reg_write_en, 
     output wire msgType,
-    output wire done,  
+    output wire done  
 );
 
 reg tx_start;
@@ -58,12 +58,12 @@ wire message_ready;
 reg [1:0] uart_state, next_uart_state;
 reg [3:0] read_index;
 
-parameter IDLE = 2'b00;
-parameter ACTIVE = 2'b01;
-parameter WAITING = 2'b10;
-parameter MSG_IDLE = 2'b00;
-parameter MSG_PROCESSING = 2'b01;
-parameter MSG_COMPLETE = 2'b10;
+localparam IDLE = 2'b00;
+localparam ACTIVE = 2'b01;
+localparam WAITING = 2'b10;
+localparam MSG_IDLE = 2'b00;
+localparam MSG_PROCESSING = 2'b01;
+localparam MSG_COMPLETE = 2'b10;
 
 integer i;
 reg [3:0] shift_index = 0;

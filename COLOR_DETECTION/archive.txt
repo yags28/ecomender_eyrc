@@ -1,0 +1,2981 @@
+####################################################
+
+
+C Programs RISC-V  :
+
+
+1.Work.c  This is only for RISC-V . All linux working has been removed
+
+
+
+Here It is :
+
+
+#include <stdbool.h>
+#include <stdint.h>
+// #include <stdint.h>
+// #include <limits.h>
+
+#define V 32
+#define STACK_SIZE 8  // Increased stack size to avoid overflow
+#define MAX_PATH 12   // Limit the path size to fit in memory
+
+// Memory-mapped I/O addresses
+#define START_POINT (*((volatile uint8_t *) 0x02000000))  // Start point address
+//#define START_POINT  15
+#define END_POINT   (*((volatile uint8_t *) 0x02000004))  // End point address
+//#define END_POINT  20
+#define NODE_POINT  (*((volatile uint8_t *) 0x02000008))  // Node point address
+#define CPU_DONE    (*((volatile uint8_t *) 0x0200000c))  // CPU done flag address
+#define DIRECTION_NEED  (*((volatile uint8_t *) 0x02000010))  // Direction Printer
+#define SECOND_LAST  (*((volatile uint8_t *) 0x02000014))
+//#define SECOND_LAST  14
+
+
+int main() {
+uint32_t graph[V] ;
+graph[0] = 0xfd190529;   //0xfd190529
+graph[1] = 0x0109FD2D;
+graph[2] = 0x15110d05;
+graph[3] = 0x9fdfdfd;
+graph[4] = 0xfdfdfd09;
+graph[5] = 0xfdfd09fd;
+graph[6] = 0x25211d01;
+graph[7] = 0x19fdfdfd;
+graph[8] = 0xfdfdfd19;
+graph[9] = 0xfdfd19fd;
+graph[10] = 0x69012d61;
+graph[11] = 0x2905314d;
+graph[12] = 0x2dfd3935;
+graph[13] = 0xfd31fdfd;
+graph[14] = 0x3d31fd41;
+graph[15] = 0xfdfd39fd;
+graph[16] = 0x4539fd49;
+graph[17] = 0xfdfdfd41;
+graph[18] = 0xfd554d41;
+graph[19] = 0x512dfd49;
+graph[20] = 0xfdfd4dfd;
+graph[21] = 0x5d5949fd;
+graph[22] = 0xfdfdfd55;
+graph[23] = 0xfd796155;
+graph[24] = 0xfd29655d;
+graph[25] = 0x61fdfdfd;
+graph[26] = 0x71fd296d;
+graph[27] = 0xfd69fdfd;
+graph[28] = 0xfd697579;
+graph[29] = 0x71fdfdfd;
+graph[30] = 0x717d5dfd;
+graph[31] = 0xfdfdfd79;
+   uint8_t path[MAX_PATH];
+    uint8_t idx = 0;
+
+    // Function to extract neighbor at given position from encoded node
+uint8_t get_neighbor(uint32_t encoded_node, uint8_t pos) {
+    // uint8_t neighbor_weight = (encoded_node >> (pos * 8)) & 0xFF;
+    // uint8_t neighbor = (neighbor_weight >> 2) & 0x3F;
+    // return (neighbor == 0x3F) ? 0xFF : neighbor;  // Return 33 for invalid neighbors
+    uint8_t n = (encoded_node >> (pos << 3)) & 0xFF;
+    return ((n >> 2) & 0x3F) == 0x3F ? 0xFF : (n >> 2) & 0x3F;
+}
+
+
+// Function to determine turn based on previous, current, and next points
+// Function to determine turn based on previous, current, and next points
+uint8_t determine_turn_opt(uint8_t prev, uint8_t curr, uint8_t next, uint32_t graph[V]) {
+    uint8_t prev_pos = 0xFF, next_pos = 0xFF;
+    uint32_t node = graph[curr];
+   // uint8_t diff ;
+    //if (prev == 0xFF) return 0;    // No turn needed at start
+    //if (next == 0xFF) return 0;  //No turn needed at end
+
+
+    // Find positions of previous and next nodes in the neighbor list
+    for (uint8_t i = 0; i < 4; i++) {
+        uint8_t neighbor = get_neighbor(node, i);
+        if (neighbor == prev) prev_pos = i;
+        if (neighbor == next) next_pos = i;
+    }
+
+    // If not found, return 0xFF (invalid)
+   // if (prev_pos == 0xFF) return 0xFF;
+    //if (next_pos == 0xFF) return 0x0F;
+
+    // Handle wrap-around cases in a circular manner
+    uint8_t diff = ((next_pos - prev_pos )+ 4) & 3;  
+
+    // Use a lookup table to avoid conditionals
+    uint8_t turn_table[4];  // 0 = Forward, 1 = Left, 2 = Right
+    turn_table[3] = 1;          //2
+    turn_table[2] = 0;
+    turn_table[1] = 2;          //1
+    turn_table[0] = 3;
+
+    return turn_table[diff];
+}
+    // Iterative DFS to find path from start to end
+bool iterative_dfs(uint8_t path[MAX_PATH],uint8_t *idx) {   // uint8_t path[MAX_PATH];
+    uint8_t stack[STACK_SIZE];
+    uint8_t path_stack[STACK_SIZE];  // Stack to track path indices for backtracking
+    uint8_t sp = 0;  // Stack pointer
+    uint8_t visited[4] = {0};  // Bitmap for visited nodes (32 bits total)
+    *idx = 0;
+    stack[sp] = START_POINT;
+    path_stack[sp] = *idx;  // Store current path index
+    sp++;
+
+    while (sp > 0) {
+        // Pop current node
+        sp--;
+        uint8_t node = stack[sp];
+        *idx = path_stack[sp];  // Restore path index for backtracking
+
+        uint8_t node_byte = node >> 3;
+        uint8_t node_bit = 1 << (node & 7);
+
+
+       // if (visited[node]) continue;  
+        //visited[node] = true;
+       if (visited[node_byte] & node_bit) {
+            continue;
+        }
+        // Mark as visited
+        visited[node_byte] |= node_bit;
+
+        // Add to path
+        path[(*idx)++] = node;
+
+        // Check if we reached the end
+        if (node == END_POINT) {
+            // Apply turning logic to the path and store turns in the array
+             for (uint8_t i = 0; i < *idx; i++) {
+               if (i < (*idx - 1)){
+               DIRECTION_NEED = determine_turn_opt(SECOND_LAST, path[i], path[i + 1], graph);//SECOND_LAST
+               SECOND_LAST = path[i];
+               }
+               NODE_POINT = path[i];
+            }
+            return true;
+        }
+
+        // Count valid neighbors first
+        uint8_t valid_neighbors = 0;
+        uint8_t neighbors[4];
+
+        for (int8_t i = 3; i >= 0; i--) {
+            uint8_t neighbor = get_neighbor(graph[node], i);
+            if (neighbor != 0xFF) {  // Valid neighbor
+                uint8_t neighbor_byte = neighbor >> 3;
+                uint8_t neighbor_bit = 1 << (neighbor & 7);
+
+                if (!(visited[neighbor_byte] & neighbor_bit)) {
+                    neighbors[valid_neighbors++] = neighbor;
+                }
+            }
+        }
+
+        // Add valid unvisited neighbors to stack
+        for (int8_t i = 0; i < valid_neighbors && sp < STACK_SIZE; i++) {
+            stack[sp] = neighbors[i];
+            path_stack[sp] = *idx;  // Store current path length for backtracking
+            sp++;
+        }
+
+        // If no valid neighbors were found, backtrack
+        if (valid_neighbors == 0 && *idx > 0) {
+            (*idx)--;  // Remove current node from path
+        }
+    }
+    return false;  // No path found
+}
+
+    // Find path using iterative DFS
+    if (iterative_dfs(path,&idx )) {
+             if (NODE_POINT == END_POINT)
+             {
+                CPU_DONE = 1;
+             }
+        }
+    return 0;  // This line will never be reached
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Now For the next code with linux compatibility  :   Deepseek.c
+
+
+
+Here it is :
+
+
+
+
+/*
+* EcoMender Bot (EB): Task 2B Path Planner
+*
+* This program computes the valid path from the start point to the end point.
+* Make sure you don't change anything outside the "Add your code here" section.
+*/
+
+#include <stdlib.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <limits.h>
+#define V 32
+#define STACK_SIZE 8  // Increased stack size to avoid overflow
+#define MAX_PATH 12   // Limit the path size to fit in memory
+
+
+#ifdef __linux__ // for host pc
+
+    #include <stdio.h>
+
+    void _put_byte(char c) { putchar(c); }
+
+    void _put_str(char *str) {
+        while (*str) {
+            _put_byte(*str++);
+        }
+    }
+
+    void print_output(uint8_t num) {
+        if (num == 0) {
+            putchar('0'); // if the number is 0, directly print '0'
+            _put_byte('\n');
+            return;
+        }
+
+        if (num < 0) {
+            putchar('-'); // print the negative sign for negative numbers
+            num = -num;   // make the number positive for easier processing
+        }
+
+        // convert the integer to a string
+        char buffer[20]; // assuming a 32-bit integer, the maximum number of digits is 10 (plus sign and null terminator)
+        uint8_t index = 0;
+
+        while (num > 0) {
+            buffer[index++] = '0' + num % 10; // convert the last digit to its character representation
+            num /= 10;                        // move to the next digit
+        }
+        // print the characters in reverse order (from right to left)
+        while (index > 0) { putchar(buffer[--index]); }
+        _put_byte('\n');
+    }
+
+    void _put_value(uint8_t val) { print_output(val); }
+
+#else  // for the test device
+
+    void _put_value(uint8_t val) { }
+    void _put_str(char *str) { }
+
+#endif
+
+// main function
+int main(int argc, char const *argv[]) {
+
+    #ifdef __linux__
+
+        const uint8_t START_POINT   = atoi(argv[1]);
+        const uint8_t END_POINT     = atoi(argv[2]);
+        uint8_t NODE_POINT          = 0;
+        uint8_t CPU_DONE            = 0;
+        uint8_t DIRECTION_NEED = 0;
+        uint8_t SECOND_LAST = 14;
+    #else
+        // Address value of variables for RISC-V Implementation
+        #define START_POINT         (* (volatile uint8_t * ) 0x02000000)
+        #define END_POINT           (* (volatile uint8_t * ) 0x02000004)
+        #define NODE_POINT          (* (volatile uint8_t * ) 0x02000008)
+        #define CPU_DONE            (* (volatile uint8_t * ) 0x0200000c)
+        #define DIRECTION_NEED  (*((volatile uint8_t *) 0x02000010))  // Direction Printer
+        #define SECOND_LAST  (*((volatile uint8_t *) 0x02000012))
+
+
+    #endif
+
+    uint32_t graph[V] ;
+graph[0] = 0xfd190529;
+graph[1] = 0x109fd2d;
+graph[2] = 0x15110d05;
+graph[3] = 0x9fdfdfd;
+graph[4] = 0xfdfdfd09;
+graph[5] = 0xfdfd09fd;
+graph[6] = 0x25211d01;
+graph[7] = 0x19fdfdfd;
+graph[8] = 0xfdfdfd19;
+graph[9] = 0xfdfd19fd;
+graph[10] = 0x69012d61;
+graph[11] = 0x2905314d;
+graph[12] = 0x2dfd3935;
+graph[13] = 0xfd31fdfd;
+graph[14] = 0x3d31fd41;
+graph[15] = 0xfdfd39fd;
+graph[16] = 0x4539fd49;
+graph[17] = 0xfdfdfd41;
+graph[18] = 0xfd554d41;
+graph[19] = 0x512dfd49;
+graph[20] = 0xfdfd4dfd;
+graph[21] = 0x5d5949fd;
+graph[22] = 0xfdfdfd55;
+graph[23] = 0xfd796155;
+graph[24] = 0xfd29655d;
+graph[25] = 0x61fdfdfd;
+graph[26] = 0x71fd296d;
+graph[27] = 0xfd69fdfd;
+graph[28] = 0xfd697579;
+graph[29] = 0x71fdfdfd;
+graph[30] = 0x717d5dfd;
+graph[31] = 0xfdfdfd79;
+   uint8_t path[MAX_PATH];
+    uint8_t idx = 0;
+
+    // Function to extract neighbor at given position from encoded node
+uint8_t get_neighbor(uint32_t encoded_node, uint8_t pos) {
+    // uint8_t neighbor_weight = (encoded_node >> (pos * 8)) & 0xFF;
+    // uint8_t neighbor = (neighbor_weight >> 2) & 0x3F;
+    // return (neighbor == 0x3F) ? 0xFF : neighbor;  // Return 33 for invalid neighbors
+    uint8_t n = (encoded_node >> (pos << 3)) & 0xFF;
+    return ((n >> 2) & 0x3F) == 0x3F ? 0xFF : (n >> 2) & 0x3F;
+}
+
+
+// Function to determine turn based on previous, current, and next points
+// Function to determine turn based on previous, current, and next points
+uint8_t determine_turn_opt(uint8_t prev, uint8_t curr, uint8_t next, uint32_t graph[V]) {
+    uint8_t prev_pos = 0xFF, next_pos = 0xFF;
+    uint32_t node = graph[curr];
+    //f (prev == 0xFF) return 0;    // No turn needed at start
+    //if (next == 0xFF) return 0;  //No turn needed at end
+
+
+    // Find positions of previous and next nodes in the neighbor list
+    for (uint8_t i = 0; i < 4; i++) {
+        uint8_t neighbor = get_neighbor(node, i);
+        if (neighbor == prev) prev_pos = i;
+        if (neighbor == next) next_pos = i;
+    }
+
+    // If not found, return 0xFF (invalid)
+   // if (prev_pos == 0xFF || next_pos == 0xFF) return 0xFF;
+
+    // Handle wrap-around cases in a circular manner
+    uint8_t diff = ((next_pos - prev_pos )+ 4) & 3;  
+
+    // Use a lookup table to avoid conditionals
+    uint8_t turn_table[4];  // 0 = Forward, 1 = Left, 2 = Right
+    turn_table[3] = 2;
+    turn_table[2] = 0;
+    turn_table[1] = 1;
+    turn_table[0] = 3;
+    return turn_table[diff];
+}
+    // Iterative DFS to find path from start to end
+bool iterative_dfs(uint8_t path[MAX_PATH],uint8_t *idx) {   // uint8_t path[MAX_PATH];
+    uint8_t stack[STACK_SIZE];
+    uint8_t path_stack[STACK_SIZE];  // Stack to track path indices for backtracking
+    uint8_t sp = 0;  // Stack pointer
+    uint8_t visited[4] = {0};  // Bitmap for visited nodes (32 bits total)
+    *idx = 0;
+    stack[sp] = START_POINT;
+    path_stack[sp] = *idx;  // Store current path index
+    sp++;
+
+    while (sp > 0) {
+        // Pop current node
+        sp--;
+        uint8_t node = stack[sp];
+        *idx = path_stack[sp];  // Restore path index for backtracking
+
+        uint8_t node_byte = node >> 3;
+        uint8_t node_bit = 1 << (node & 7);
+
+
+       // if (visited[node]) continue;  
+        //visited[node] = true;
+       if (visited[node_byte] & node_bit) {
+            continue;
+        }
+        // Mark as visited
+        visited[node_byte] |= node_bit;
+
+        // Add to path
+        path[(*idx)++] = node;
+
+        // Check if we reached the end
+        if (node == END_POINT) {
+            // Apply turning logic to the path and store turns in the array
+             for (uint8_t i = 0; i < *idx; i++) {
+               // final_path[i] = path[i];
+               if (i < (*idx - 1)){
+               DIRECTION_NEED = determine_turn_opt(SECOND_LAST, path[i], path[i + 1], graph);
+               _put_str("=====================================");
+               _put_str("Direction Checking\n");
+               _put_value(DIRECTION_NEED);
+               //(i > 0 ? path[i - 1] : SECOND_LAST )
+               SECOND_LAST = path[i];
+               }
+               NODE_POINT = path[i];
+               //NODE_POINT = sp;
+            }
+           // *final_idx = *idx;
+            return true;
+            //CPU_DONE = 1;
+        //    while (1);
+        }
+
+        // Count valid neighbors first
+        uint8_t valid_neighbors = 0;
+        uint8_t neighbors[4];
+
+        for (int8_t i = 3; i >= 0; i--) {
+            uint8_t neighbor = get_neighbor(graph[node], i);
+            if (neighbor != 0xFF) {  // Valid neighbor
+                uint8_t neighbor_byte = neighbor >> 3;
+                uint8_t neighbor_bit = 1 << (neighbor & 7);
+
+                if (!(visited[neighbor_byte] & neighbor_bit)) {
+                    neighbors[valid_neighbors++] = neighbor;
+                }
+            }
+        }
+
+        // Add valid unvisited neighbors to stack
+        for (int8_t i = 0; i < valid_neighbors && sp < STACK_SIZE; i++) {
+            stack[sp] = neighbors[i];
+            path_stack[sp] = *idx;  // Store current path length for backtracking
+            sp++;
+        }
+
+        // If no valid neighbors were found, backtrack
+        if (valid_neighbors == 0 && *idx > 0) {
+            (*idx)--;  // Remove current node from path
+        }
+    }
+
+    return false;  // No path found
+}
+
+    // Find path using iterative DFS
+    if (iterative_dfs(path,&idx )) {
+             if (NODE_POINT == END_POINT)
+             {
+                 CPU_DONE = 1;
+             }
+        }
+  //  return 0;  // This line will never be reached
+
+
+    
+    // #ifdef __linux__    // for host pc
+
+    //     _put_str("######### Planned Path #########\n");
+    //     for (int i = 0; i < idx; ++i) {
+    //         _put_value(DIRECTION_NEED[i]);
+    //     }
+    //     _put_str("################################\n");
+
+    // #endif
+
+    return 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+
+Heres the generatehex file :
+
+
+
+#!/bin/bash
+[ ! -z "${1}" ] && infile="${1}" || infile="path_planner.c"
+ARCH=rv32i
+ROM=2048
+RAM=256
+STACK=32
+CFLAGS="  -march=$ARCH -mabi=ilp32 --specs=picolibc.specs -Os -g3 -flto -DPICOLIBC_INTEGER_PRINTF_SCANF -Wall"
+LDFLAGS=" -march=$ARCH -mabi=ilp32 --specs=picolibc.specs -Os -g3 -flto -DPICOLIBC_INTEGER_PRINTF_SCANF "
+LDFLAGS+=" -Wl,--gc-sections,--defsym=__flash=0x00000000,--defsym=__flash_size=$ROM --crt0=minimal" #" -nostartfiles"
+LDFLAGS+=" -Wl,--defsym=__ram=0x02000000,--defsym=__ram_size=$RAM,--defsym=__stack_size=$STACK -Tpicolibc.ld"
+cd ../
+riscv64-unknown-elf-gcc $CFLAGS -c "c_programs/$infile" -o .temp.file.o && \
+riscv64-unknown-elf-gcc $LDFLAGS -o .temp.file.elf .temp.file.o && \
+riscv64-unknown-elf-objdump --visualize-jumps -t -S --source-comment='     ### ' .temp.file.elf -M no-aliases,numeric > program.lss && \
+riscv64-unknown-elf-objcopy -O binary .temp.file.elf .temp.file.bin && \
+truncate -s $ROM .temp.file.bin && \
+riscv64-unknown-elf-objcopy --verilog-data-width=4 --reverse-bytes=4 -I binary -O verilog .temp.file.bin program.hex && \
+riscv64-unknown-elf-size -B --common .temp.file.elf && \
+echo "program.hex and program.lss have been successfully generated from $infile"  || \
+echo "And therefore, $infile could not be converted into binary format. :("
+#rm -f .temp.file.*
+
+//////////////////////////////////////////////////////////////////////////////////
+
+Here are the two demo codes that they have given  
+
+1.t2b_exp2_c :
+
+
+/*
+* EcoMender Bot (EB): Task 2B Example 2
+*
+* This program generates simple arithmetic progression.
+*/
+
+#include <stdlib.h>
+#include <stdbool.h>
+#include <stdint.h>
+
+#ifdef __linux__ // for host pc
+
+    #include <stdio.h>
+
+    void _put_byte(char c) { putchar(c); }
+
+    void _put_str(char *str) {
+        while (*str) {
+            _put_byte(*str++);
+        }
+    }
+
+    void print_output(uint8_t num) {
+        if (num == 0) {
+            putchar('0'); // if the number is 0, directly print '0'
+            _put_byte('\n');
+            return;
+        }
+
+        if (num < 0) {
+            putchar('-'); // print the negative sign for negative numbers
+            num = -num;   // make the number positive for easier processing
+        }
+
+        // convert the integer to a string
+        char buffer[20]; // assuming a 32-bit integer, the maximum number of digits is 10 (plus sign and null terminator)
+        uint8_t index = 0;
+
+        while (num > 0) {
+            buffer[index++] = '0' + num % 10; // convert the last digit to its character representation
+            num /= 10;                        // move to the next digit
+        }
+
+        // print the characters in reverse order (from right to left)
+        while (index > 0) { putchar(buffer[--index]); }
+        _put_byte('\n');
+    }
+
+    void _put_value(uint8_t val) { print_output(val); }
+
+#else  // for the test device
+
+    void _put_value(uint8_t val) { }
+    void _put_str(char *str) { }
+
+#endif
+
+// main function
+int main(int argc, char const *argv[]) {
+
+    #ifdef __linux__ // for simulation
+
+        const uint8_t A    = 5;
+        const uint8_t D    = 6;
+        const uint8_t N    = atoi(argv[1]);
+        uint8_t CPU_DATA   = 0;
+        uint8_t CPU_DONE   = 0;
+
+    #else // for hardware implementation
+
+        // define variable with an address to load/store
+        #define A              (* (volatile uint8_t * ) 0x02000000)
+        #define D              (* (volatile uint8_t * ) 0x02000004)
+        #define N              (* (volatile uint8_t * ) 0x02000008)
+        #define CPU_DATA       (* (volatile uint8_t * ) 0x0200000c)
+        #define CPU_DONE       (* (volatile uint8_t * ) 0x02000010)
+
+    #endif
+
+    /*
+    * Function Name : generate_ap_series
+    * Description   : Generate an Arithmetic Progression series
+    * Arguments     : a - first term
+                      d - common difference
+                      n - no of terms
+    */
+    void generate_ap_series(uint8_t a, uint8_t d, uint8_t n) {
+        // iterate for n-terms
+        for (uint8_t i = 0; i < n; i++) {
+            // result is stored in CPU_DATA
+            CPU_DATA = a + i * d;
+            // print in c simulation on linux, do nothing in hardware
+            _put_value(CPU_DATA);
+        }
+        // for c simulation
+        _put_str("\n");
+    }
+
+    // function call
+    generate_ap_series(A, D, N);
+
+    // flag indicating program execution is complete
+    CPU_DONE = 1;
+
+    return 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+
+Now for second one
+
+1.t2b_exp1_c:
+
+
+
+/*
+* EcoMender Bot (EB): Task 2B Example 1
+*
+* This program generates SUM of n natural number.
+*/
+
+#include <stdlib.h>
+#include <stdbool.h>
+#include <stdint.h>
+
+#ifdef __linux__ // for host pc
+
+    #include <stdio.h>
+
+    int N = 20, SUM = 0, CPU_DONE = 0;
+
+    void _put_byte(char c) { putchar(c); }
+
+    void _put_str(char *str) {
+        while (*str) {
+            _put_byte(*str++);
+        }
+    }
+
+    void print_output(uint8_t num) {
+        if (num == 0) {
+            putchar('0'); // if the number is 0, directly print '0'
+            _put_byte('\n');
+            return;
+        }
+
+        if (num < 0) {
+            putchar('-'); // print the negative sign for negative numbers
+            num = -num;   // make the number positive for easier processing
+        }
+
+        // convert the integer to a string
+        char buffer[20]; // asSUMing a 32-bit integer, the maximum number of digits is 10 (plus sign and null terminator)
+        uint8_t index = 0;
+
+        while (num > 0) {
+            buffer[index++] = '0' + num % 10; // convert the last digit to its character representation
+            num /= 10;                        // move to the next digit
+        }
+
+        // print the characters in reverse order (from right to left)
+        while (index > 0) { putchar(buffer[--index]); }
+        _put_byte('\n');
+    }
+
+    void _put_value(uint8_t val) { print_output(val); }
+
+#else  // for the test device
+
+    #define N                 (* (volatile uint8_t * ) 0x02000000)
+    #define SUM               (* (volatile uint8_t * ) 0x02000004)
+    #define CPU_DONE          (* (volatile uint8_t * ) 0x02000008)
+    void _put_value(uint8_t val) { }
+    void _put_str(char *str) { }
+
+#endif
+
+// main function
+int main() {
+    SUM = 0;
+    for (int i = 1; i <= N; i++) {
+        SUM = SUM + i;
+        _put_value(SUM);
+    }
+    CPU_DONE = 1;
+    return 0;
+}
+/////////////////////////////////////////////////////////////////////////
+
+This is the c_simulator.sh 
+
+
+
+#!/bin/bash
+
+help() {
+    # display help
+   echo "Simulate the path_planning algorithm"
+   echo
+   echo "Usage: ./c_simulator.sh -h, -f <file_path> -s <start_point> -e <end_point>"
+   echo "options:"
+   echo "h     Print this Help."
+   echo "f     Path of the C program file."
+   echo "s     Start point."
+   echo "e     End point."
+   echo
+}
+
+if [ "$#" -eq 6 ]; then
+    while getopts "hf:s:e:" opt; do
+        case "$opt" in
+            f) file_path=$OPTARG ;;
+            s) start_point=$OPTARG ;;
+            e) end_point=$OPTARG ;;
+            h) help ;;
+            :) echo "argument missing for $ARG" ;;
+            \?) echo "Something is wrong" ;;
+        esac
+    done
+else
+    help
+    exit 1
+fi
+
+echo; echo "================================"
+echo; echo "          C Simulator           ";
+echo; echo "--------------------------------"; echo
+
+echo "Executing file: $file_path"
+
+echo; echo "================================"; echo
+
+if [ ! -f "$file_path" ]; then
+    echo "File $file_path does not exist."
+    exit 1
+fi
+
+gcc "$file_path" -o output_file
+if [ $? -ne 0 ]; then
+    echo; echo "Compilation failed, kindly check for errors."
+    exit 1
+fi
+
+./output_file "$start_point" "$end_point"
+rm -f output_file
+
+
+
+//////////////////////////////////////////////////////////////
+
+
+Previous Data_Mem code ::
+
+
+////
+////// data_mem.v - data memory
+////
+////module data_mem #(parameter DATA_WIDTH = 32, ADDR_WIDTH = 32, MEM_SIZE = 64) (
+////    input       clk, wr_en,
+////    input       [ADDR_WIDTH-1:0] wr_addr, wr_data,
+////    output      [DATA_WIDTH-1:0] rd_data_mem
+////);
+////
+////// array of 64 32-bit words or data
+////reg [DATA_WIDTH-1:0] data_ram [0:MEM_SIZE-1];
+////
+////// combinational read logic
+////// word-aligned memory access
+////assign rd_data_mem = data_ram[wr_addr[DATA_WIDTH-1:2] % 64];
+////			rd_data_mem = data_ram[wr_addr[DATA_WIDTH-1:2] % 64];
+////
+////// synchronous write logic
+////always @(posedge clk) begin
+////    if (wr_en) data_ram[wr_addr[DATA_WIDTH-1:2] % 64] <= wr_data;
+////end
+////
+////endmodule
+//
+//////////////////////////////////////////////////////////////////////////////////////
+//
+//// module data_mem #(parameter DATA_WIDTH = 32, ADDR_WIDTH = 32, MEM_SIZE = 64) (
+////     input		clk, wr_en,
+////     input 		[2:0] funct3,
+////     input 		[ADDR_WIDTH-1:0] wr_addr, wr_data,
+////     output reg [DATA_WIDTH-1:0] rd_data_mem
+//// );
+//
+//// // Array of 64 32-bit words or data
+//// reg [DATA_WIDTH-1:0] data_ram [0:MEM_SIZE-1];
+//
+//// // Calculate word address (limited by MEM_SIZE)
+//// //wire [5:0] word_addr = wr_addr[DATA_WIDTH-1:2] % MEM_SIZE;  // Only 6 bits needed
+//
+//// // Synchronous write logic
+//// always @(posedge clk) begin
+////     if (wr_en) data_ram[wr_addr[DATA_WIDTH-1:2] % 64] = wr_data;
+//// end
+//
+//// always @(*) begin
+////     case (funct3)
+////         3'b000: rd_data_mem = {{24{data_ram[wr_addr[DATA_WIDTH-1:2] % 64][7]}}, data_ram[wr_addr[DATA_WIDTH-1:2] % 64][7:0]}; // Sign-extend byte
+////         3'b100: rd_data_mem = {24'b0, data_ram[wr_addr[DATA_WIDTH-1:2] % 64][7:0]}; // Zero-extend byte
+////         3'b001: rd_data_mem = {{16{data_ram[wr_addr[DATA_WIDTH-1:2] % 64][15]}}, data_ram[wr_addr[DATA_WIDTH-1:2] % 64][15:0]}; // Sign-extend half-word
+////         3'b101: rd_data_mem = {16'b0, data_ram[wr_addr[DATA_WIDTH-1:2] % 64][15:0]}; // Zero-extend half-word
+////         3'b010: rd_data_mem = data_ram[wr_addr[DATA_WIDTH-1:2] % 64]; // Load word (lw)
+////         default: rd_data_mem = 32'b0; // Default case to handle unexpected funct3 values
+////     endcase
+//// end
+//
+//// endmodule
+//
+//
+//module data_mem #(parameter DATA_WIDTH = 32, ADDR_WIDTH = 32, MEM_SIZE = 64) (
+//    input       clk, wr_en,
+//    input       [2:0] funct3,
+//    input       [ADDR_WIDTH-1:0] wr_addr, wr_data,
+//    output reg  [DATA_WIDTH-1:0] rd_data_mem
+//);
+//
+//// Array of 64 32-bit words or data
+//reg [DATA_WIDTH-1:0] data_ram [0:MEM_SIZE-1];
+//// Declare data_word outside the always block
+//reg [DATA_WIDTH-1:0] data_word;
+//// Calculate word address (limited by MEM_SIZE)
+//wire [5:0] word_addr = wr_addr[DATA_WIDTH-1:2] % MEM_SIZE;  // Only 6 bits needed
+//
+//// Synchronous write logic
+//always @(posedge clk) begin
+//    if (wr_en) data_ram[word_addr] = wr_data;
+//end
+//
+//always @(*) begin
+//    // reg [DATA_WIDTH-1:0] data_word;
+//    data_word = data_ram[word_addr];
+//    case (funct3)
+//        3'b000: rd_data_mem = {{24{data_word[7]}}, data_word[7:0]}; // Sign-extend byte
+//        3'b100: rd_data_mem = {24'b0, data_word[7:0]}; // Zero-extend byte
+//        3'b001: rd_data_mem = {{16{data_word[15]}}, data_word[15:0]}; // Sign-extend half-word
+//        3'b101: rd_data_mem = {16'b0, data_word[15:0]}; // Zero-extend half-word
+//        3'b010: rd_data_mem = data_word; // Load word (lw)
+//        default: rd_data_mem = 32'b0; // Default case to handle unexpected funct3 values
+//    endcase
+//    
+//end
+//
+//endmodule
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+
+archive_cpu.txt
+############################################################
+// // alu_decoder.v - logic for ALU decoder
+
+// module alu_decoder (
+//     input            opb5,
+//     input [2:0]      funct3,
+//     input            funct7b5,
+//     input [1:0]      ALUOp,
+//     output reg [3:0] ALUControl
+// );
+
+// always @(*) begin
+//     case (ALUOp)
+//         2'b00: ALUControl = 4'b000;             // addition
+//         2'b01: begin
+// 			case(funct3)
+// 				//ment for branching instructions
+// 				3'b000:	ALUControl = 4'b0001;             	// beq
+// 				3'b001:	ALUControl = 4'b0001;					// bne
+// 				3'b100:	ALUControl = 4'b0101;					// blt
+// 				3'b101:	ALUControl = 4'b0101;             	// bge
+// 				3'b110:	ALUControl = 4'b0110;             	// bltu
+// 				3'b111:	ALUControl = 4'b0110;					// bgeu
+// 				default: ALUControl = 4'bxxxx; 				// ???
+//          endcase
+// 		  end
+//         default:
+//             case (funct3) // R-type or I-type ALU
+//                 3'b000: begin
+//                     // True for R-type subtract
+//                     if   (funct7b5 & opb5) ALUControl = 4'b0001; //sub
+//                     else ALUControl = 4'b0000; // add, addi
+//                 end
+// 					 3'b001:  ALUControl = 4'b1000; // SLLI (Shift Left Logical Immediate)
+//                 3'b010:  ALUControl = 4'b0101; // slt, slti
+// 					 3'b011:  ALUControl = 4'b0110; // SLTIU (unsigned comparison)
+// 					 3'b100:  ALUControl = 4'b0100; // XOR		   
+//                 3'b110:  ALUControl = 4'b0011; // or, ori
+//                 3'b111:  ALUControl = 4'b0010; // and, andi
+// 					 3'b101:  ALUControl = (funct7b5 == 7'b0000000) ? 4'b0111 : 4'b1001; // SRLI or SRAI
+					 
+//                 default: ALUControl = 4'bxxx; // ???
+//             endcase
+//     endcase
+// end
+
+// endmodule
+
+############################################################
+
+controller.v
+
+// for jump and branch
+//assign PCSrc = (Branch & Zero) | Jump;
+//brancher			 br (Branch, Jump, Zero, funct3, PCSrc);
+
+############################################################
+
+
+// // datapath.v
+// module datapath (
+//     input         clk, reset,
+//     input [1:0]   ResultSrc,
+//     input         PCSrc, ALUSrc,
+//     input         RegWrite,
+//     input [2:0]   ImmSrc,
+//     input [3:0]   ALUControl,
+//     output        Zero,
+//     output [31:0] PC,
+//     input  [31:0] Instr,
+//     output [31:0] Mem_WrAddr, Mem_WrData,
+//     input  [31:0] ReadData,
+//     output [31:0] Result,
+// 	 input			funct7b5
+// );
+
+// wire [31:0] PCint, PCNext, PCPlus4, PCTarget, PCimm;
+// wire [31:0] ImmExt, SrcA, SrcB, WriteData, ALUResult;
+// wire jal_r;
+
+// //jalr_W signal generation
+// assign jalr_w = (Instr[6:0] == 7'd103);
+
+// // next PC logic
+// reset_ff #(32) pcreg(clk, reset, PCNext, PC);
+// adder          pcadd4(PC, 32'd4, PCPlus4);
+// adder          pcaddbranch(PC, ImmExt, PCTarget);
+// mux2 #(32)     pcmux(PCPlus4, PCTarget, PCSrc, PCint);
+// mux2 #(32)     pcJALRmux(PCint, ALUResult, jalr_w, PCNext);
+
+// // register file logic
+// reg_file       rf (clk, RegWrite, Instr[19:15], Instr[24:20], Instr[11:7], Result, SrcA, WriteData);
+// imm_extend     ext (Instr[31:7], ImmSrc, ImmExt);
+
+// // ALU logic
+// mux2 #(32)     srcbmux(WriteData, ImmExt, ALUSrc, SrcB);
+
+// alu            alu (SrcA, SrcB, ALUControl, ALUResult, Zero);
+
+// //mux3 #(32)     resultmux_o(ALUResult, ReadData, PCPlus4, ResultSrc, Result);
+
+// mux4 #(32)     resultmux(ALUResult, ReadData, PCPlus4, PCimm, ResultSrc, Result);
+// // added 1:4 mux copying the old one and adding the pc target in new write column.
+
+// mux2 #(32)     PCimmMux(PCTarget, ImmExt, funct7b5, PCimm);
+// //logic to select between op(23) and op(55)
+
+// assign Mem_WrData = WriteData;
+// assign Mem_WrAddr = ALUResult;
+
+// endmodule
+############################################################
+
+imm_extend.v
+
+//    case(immsrc)
+//        // I−type
+//        3'b00:   immext = {{20{instr[31]}}, instr[31:20]};
+//        // S−type (stores)
+//        3'b01:   immext = {{20{instr[31]}}, instr[31:25], instr[11:7]};
+//        // B−type (branches)
+//        3'b10:   immext = {{20{instr[31]}}, instr[7], instr[30:25], instr[11:8], 1'b0};
+//        // J−type (jal)
+//        3'b11:   immext = {{12{instr[31]}}, instr[19:12], instr[20], instr[30:21], 1'b0};
+//		  //mandy --implement extension for damn u type
+//		  3'b100:	immext = {instr[31:12],12'b0};
+//        default: immext = 32'bx; // undefined
+//    endcase
+############################################################
+
+
+// // main_decoder.v - logic for main decoder
+
+// module main_decoder (
+//     input  	[6:0] 	op,
+// 	 input 	[2:0]		funct3,
+// 	 input				Zero,
+//     output 	[1:0] 	ResultSrc,
+//     output       		MemWrite, ALUSrc,
+//     output       		RegWrite, 
+//     output 	[2:0] 	ImmSrc, //3 bit signal
+//     output 	[1:0] 	ALUOp,
+// 	 output 				pcsrc
+// );
+
+// reg [11:0] controls;
+
+// always @(*) begin
+//     case (op)
+//         // RegWrite_ImmSrc_ALUSrc_MemWrite_ResultSrc_Branch_ALUOp_Jump
+		  
+//         7'b0000011: controls = 12'b1_000_1_0_01_0_00_0; // lw
+		  
+//         7'b0100011: controls = 12'b0_001_1_1_00_0_00_0; // sw
+//         7'b0110011: controls = 12'b1_xxx_0_0_00_0_10_0; // R–type 
+//         7'b1100011: controls = 12'b0_010_0_0_00_1_01_0; // beq 
+// 		  7'b0010011: controls = 12'b1_000_1_0_00_0_10_0; // I–type ALU [19]
+// 		  7'b0010111: controls = 12'b1_100_1_0_11_0_00_0;	//added for [23] manthan
+//         7'b1101111: controls = 12'b1_011_0_0_10_0_00_1; // jal
+// 		  7'b0110111: controls = 12'b1_100_0_0_11_0_00_0;	//rd used, u-type, no alu, no mem, resultsrc-4, 
+// 		  7'd103		: controls = 12'b1_000_1_0_10_0_00_x;
+//         default:    controls = 12'bx_xxx_x_x_xx_x_xx_x; // ???
+//     endcase
+// end
+
+// assign {RegWrite, ImmSrc, ALUSrc, MemWrite, ResultSrc, Branch, ALUOp, Jump} = controls;
+
+// assign pcsrc = (funct3[2] ^ funct3[0]) ?((Branch & ~Zero) | Jump) : ((Branch & Zero) | Jump);                  
+
+// endmodule
+
+############################################################
+
+nodefinder
+
+// //module nodeFinder(
+//     //    input clk,
+//     //    input reset,
+//     //    input update,
+//     //    output wire [1:0] node_select,
+//     //    output wire [2:0] data
+//     //);
+//     //
+//     //    wire [2:0] array [0:2]; // 3x3-bit wireister array // reduce the 0:3 to 0:2 when you can
+//     //    wire [2:0] state;// next_state;
+//     //    wire signed[3:0] pos;
+//     //	 /*
+//     //	 The issue occurs because pos needs to represent values below zero and above two during transitions. 
+//     //	 A 2-bit wireister (wire [1:0] pos;) wraps around when subtracting from zero or adding beyond two, causing incorrect behavior.
+//     //	 */
+//     //    wire signed [3:0] stack;
+//     //
+//     //    // Initialize the array with predefined values
+//     //    initial begin
+//     //        array[0] = 3'b001; // MU1 (1)
+//     //        array[1] = 3'b110; // SU2 (2)
+//     //        array[2] = 3'b111; // SU3 (3)
+//     //    end
+//     //
+//     //always @(posedge clk) begin
+//     //        case (state)
+//     //            0: begin // Idle state, wait for update
+//     //                if (update) begin
+//     //                    pos <= 2;
+//     //                    state <= 1;
+//     //                end else
+//     //                    state <= 0;
+//     //            end
+//     //            1: begin // Scan from pos 2 to 0 for MU
+//     //                if (pos >= 0) begin
+//     //                    if (array[pos] == 3'b001 || array[pos] == 3'b010 || array[pos] == 3'b011) begin
+//     //                        data <= pos;
+//     //                        node_select <= 0;
+//     //                        stack <= stack + 1;
+//     //                    end
+//     //                    if (pos == 0) state <= 2;
+//     //                    pos <= pos - 1;
+//     //                end
+//     //            end
+//     //            2: begin // Scan from pos 0 to 2 for MU
+//     //                if (pos <= 2) begin
+//     //                    if (array[pos] == 3'b001 || array[pos] == 3'b010 || array[pos] == 3'b011) begin
+//     //                        data <= array[pos];
+//     //                        node_select <= 1;
+//     //                        stack <= stack - 1;
+//     //                    end
+//     //                    if (pos == 2) state <= 3;
+//     //                    pos <= pos + 1;
+//     //                end
+//     //            end
+//     //            3: begin // Scan from pos 2 to 0 for SU
+//     //                if (pos >= 0) begin
+//     //                    if (array[pos] == 3'b101 || array[pos] == 3'b110 || array[pos] == 3'b111) begin
+//     //                        data <= array[pos];
+//     //                        node_select <= 1;
+//     //                        stack <= stack + 1;
+//     //                    end
+//     //                    if (pos == 0) state <= 4;
+//     //                    pos <= pos - 1;
+//     //                end
+//     //            end
+//     //            4: begin // Scan from pos 0 to 2 for SU
+//     //                if (pos <= 2) begin
+//     //                    if (array[pos] == 3'b101 || array[pos] == 3'b110 || array[pos] == 3'b111) begin
+//     //                        data <= pos;
+//     //                        node_select <= 0;
+//     //                        stack <= stack - 1;
+//     //                    end
+//     //                    if (pos == 2) state <= 0;
+//     //                    pos <= pos + 1;
+//     //                end
+//     //            end
+//     //            default: state <= 0;
+//     //        endcase
+//     //    end
+//     //endmodule
+
+// ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// /*
+// add something to clear the message array 
+// */
+
+// module nodeFinder (
+//     input wire clk,
+//     input wire rst,
+//     input wire start,
+//     input wire [7:0] data_in,
+//     input wire update,
+//     output wire [4:0] position,
+//     output wire msgType,
+//     output wire error,
+//     output wire  node_select,
+//     output wire [2:0] data,
+//     output wire [4:0] node_id
+// );
+//     interpretor uut2 (
+//         .current_unit(2'b10),
+//         .msgType(msgType),
+//         .node_select(node_select),
+//         .data(data),
+//         .node_id(node_id)
+//     );
+
+//     localparam [2:0] IDLE = 3'b000;
+//     localparam [2:0] READ = 3'b001;
+//     localparam [2:0] DONE = 3'b010;
+    
+//     wire [2:0] current_state, next_state;
+//     wire [2:0] message [0:2]; // Shared message array
+//     wire [2:0] scan_state;
+//     wire signed [3:0] pos;
+//     wire signed [3:0] stack;
+    
+//     initial begin
+//         position = 0;
+//         msgType = 0;
+//         error = 0;
+//         message[0] = 3'b000;
+//         message[1] = 3'b000;
+//         message[2] = 3'b000;
+//         scan_state = 0;
+//         pos = 0;
+//         stack = 0;
+//     end
+    
+//     always @(posedge clk or posedge rst) begin
+//        if (rst) begin
+// //            current_state <= IDLE;
+//            position <= 0;
+// //            msgType <= 0;
+// //            error <= 0;
+//            message[0] <= 3'b000;
+//            message[1] <= 3'b000;
+//            message[2] <= 3'b000;
+// //            scan_state <= 0;
+// //            pos <= 0;
+// //            stack <= 0;
+//        end else begin
+//             current_state <= next_state;
+//             case (current_state)
+//                 IDLE: begin
+//                     position <= 0;
+//                     // msgType <= 0;
+//                     error <= 0;
+// //                    message[0] <= 3'b000;
+// //                    message[1] <= 3'b000;
+// //                    message[2] <= 3'b000;
+//                 end
+//                 READ: begin
+//                     case (position)
+//                         0: begin
+//                             if (data_in == 8'h43) begin // 'C'
+//                                 position <= 4;
+//                                 msgType <= 1;
+//                             end else if (data_in == 8'h53) // 'S'
+//                                 position <= 6;
+//                             else
+//                                 error <= 1;
+//                         end
+//                         4: begin
+//                             if (data_in == 8'h50)      message[0] <= 3'b000;    //P
+//                             else if (data_in == 8'h57) message[0] <= 3'b001;    //W
+//                             else if (data_in == 8'h46) message[0] <= 3'b010;    //F
+//                             position <= 7;
+//                         end
+//                         6, 12, 18: begin
+//                             if (data_in == 8'h4D)      message[(position/6) - 1][2] <= 0;
+//                             else if (data_in == 8'h53) message[(position/6) - 1][2] <= 1;
+//                             else if (data_in == 8'h58) message[(position/6) - 1] <= 3'b000;
+//                             position <= position + 2;
+//                         end
+//                         8, 14, 20: begin
+//                             if (data_in == 8'h31)      message[((position-2)/6) - 1][1:0] <= 2'd1;
+//                             else if (data_in == 8'h32) message[((position-2)/6) - 1][1:0] <= 2'd2;
+//                             else if (data_in == 8'h33) message[((position-2)/6) - 1][1:0] <= 2'd3;
+//                             else if (data_in == 8'h58) message[((position-2)/6) - 1] <= 3'b000;
+//                             position <= (position == 20) ? 22 : position + 4;
+//                         end
+//                         default: position <= 0;
+//                     endcase
+//                 end
+//             endcase
+//        end
+//     end
+    
+//     always @(*) begin
+//         case (current_state)
+//             IDLE: next_state = start ? READ : IDLE;
+//             READ: next_state = (data_in == 8'h23) ? DONE : READ;
+//             DONE: next_state = IDLE;
+//             default: next_state = IDLE;
+//         endcase
+//     end
+    
+//     always @(posedge clk) begin
+//         if(msgType) begin
+//             data <= message[0];
+//         end
+//         else begin
+//         case (scan_state)
+//             0: begin
+//                 if (update) begin
+//                     pos <= 2;
+//                     scan_state <= 1;
+//                 end else
+//                     scan_state <= 0;
+//             end
+//             1: begin
+//                 if (pos >= 0) begin
+//                     if (message[pos] == 3'b001 || message[pos] == 3'b010 || message[pos] == 3'b011) begin
+//                         data <= pos;
+//                         // even though 4 bit signed pos is connected to 3 bit unsigned data, the interpreted values use LSBs
+//                         node_select <= 0;
+//                         stack <= stack + 1;
+//                     end
+//                     if (pos == 0) scan_state <= 2;
+//                     pos <= pos - 1;
+//                 end
+//             end
+//             2: begin
+//                 if (pos <= 2) begin
+//                     if (message[pos] == 3'b001 || message[pos] == 3'b010 || message[pos] == 3'b011) begin
+//                         data <= message[pos];
+//                         node_select <= 1;
+//                         stack <= stack - 1;
+//                     end
+//                     if (pos == 2) scan_state <= 3;
+//                     pos <= pos + 1;
+//                 end
+//             end
+//             3: begin
+//                 if (pos >= 0) begin
+//                     if (message[pos] == 3'b101 || message[pos] == 3'b110 || message[pos] == 3'b111) begin
+//                         data <= message[pos];
+//                         node_select <= 1;
+//                         stack <= stack + 1;
+//                     end
+//                     if (pos == 0) scan_state <= 4;
+//                     pos <= pos - 1;
+//                 end
+//             end
+//             4: begin
+//                 if (pos <= 2) begin
+//                     if (message[pos] == 3'b101 || message[pos] == 3'b110 || message[pos] == 3'b111) begin
+//                         data <= pos;
+//                         node_select <= 0;
+//                         stack <= stack - 1;
+//                     end
+//                     if (pos == 2) scan_state <= 0;
+//                     pos <= pos + 1;
+//                 end
+//             end
+//             default: scan_state <= 0;
+//         endcase
+//         end
+//     end
+// endmodule
+
+############################################################
+
+shipmaster
+
+// // // // module ship_master(
+    // //     // //     input clk,
+    // //     // //     input read_done,
+    // //     // //     // input [1:0] current_unit,
+    // //     // //     input msgType,
+    // //     // //     // reg data input
+    // //     // //     input [1:0] reg_pos_in,
+    // //     // //     input [2:0] reg_data,
+    // //     // //     input reg_write_en,
+    // //     // //     // travel related
+    // //     // //     input travel_done,
+    // //     // //     output reg run_done,
+    // //     // //     output wire [4K:0] node_id
+    // //     // // );
+
+    // //     // // // message array should be here
+    // //     // // reg [2:0] message [0:2];
+
+    // //     // // // current unit
+    // //     // // reg [1:0] current_unit, reg_pos;
+    // //     // // reg signed [4:0] scan_state, scan_state_next;
+    // //     // // reg [2:0] data;
+    // //     // // reg node_select;
+
+    // //     // // // interpretor instentiation
+    // //     // // interpretor uut (
+    // //     // //     .current_unit(current_unit),
+    // //     // //     .msgType(msgType),
+    // //     // //     .node_select(node_select),      // 0 for top, 1 for bottom
+    // //     // //     .data(data),                    // input of 3 bits
+    // //     // //     .node_id(node_id)               // output of 5 bits
+    // //     // // );
+
+    // //     // // initial begin
+    // //     // //     message[0] = 3'b000;
+    // //     // //     message[1] = 3'b000;
+    // //     // //     message[2] = 3'b000;
+    // //     // //     current_unit = 2'b11; //error state for this
+    // //     // //     scan_state = 3'd1;
+    // //     // //     reg_pos = 0;
+    // //     // // end
+
+    // //     // // // synchronous write logic
+    // //     // // always @(posedge clk) begin
+    // //     // //     if (reg_write_en) begin
+    // //     // //         message[reg_pos_in] <= reg_data;
+    // //     // //     end
+    // //     // //     // update current unit when csl message
+    // //     // //     if(msgType && read_done) begin
+    // //     // //         current_unit <= reg_data[1:0];
+    // //     // //     end
+    // //     // // end
+
+    // //     // // always @(posedge clk) begin
+    // //     // //     scan_state <= scan_state_next;
+    // //     // //     if(read_done) begin
+    // //     // //         if(msgType) begin
+    // //     // //             data <= message[0];
+    // //     // //         end
+    // //     // //         else begin
+    // //     // //         case (scan_state)
+    // //     // //             // 0: begin
+    // //     // //             //     if (read_done) begin
+    // //     // //             //         reg_pos <= 2;
+    // //     // //             //         scan_state <= 1;
+    // //     // //             //     end else
+    // //     // //             //         scan_state <= 0;
+    // //     // //             // end
+    // //     // //             1: begin
+    // //     // //                 if (reg_pos >= 0) begin
+    // //     // //                     if (message[reg_pos] == 3'b001 || message[reg_pos] == 3'b010 || message[reg_pos] == 3'b011) begin
+    // //     // //                         data <= reg_pos;
+    // //     // //                         // even though 4 bit signed pos is connected to 3 bit unsigned data, the interpreted values use LSBs
+    // //     // //                         node_select <= 0;
+    // //     // //                         // stack <= stack + 1;
+    // //     // //                     end
+    // //     // //                     if (reg_pos == 0) scan_state_next <= 2;
+    // //     // //                     reg_pos <= reg_pos - 1;
+    // //     // //                 end
+    // //     // //             end
+    // //     // //             2: begin
+    // //     // //                 if (reg_pos <= 2) begin
+    // //     // //                     if (message[reg_pos] == 3'b001 || message[reg_pos] == 3'b010 || message[reg_pos] == 3'b011) begin
+    // //     // //                         data <= message[reg_pos];
+    // //     // //                         node_select <= 1;
+    // //     // //                         // stack <= stack - 1;
+    // //     // //                     end
+    // //     // //                     if (reg_pos == 2) scan_state_next <= 3;
+    // //     // //                     reg_pos <= reg_pos + 1;
+    // //     // //                 end
+    // //     // //             end
+    // //     // //             3: begin
+    // //     // //                 if (reg_pos >= 0) begin
+    // //     // //                     if (message[reg_pos] == 3'b101 || message[reg_pos] == 3'b110 || message[reg_pos] == 3'b111) begin
+    // //     // //                         data <= message[reg_pos];
+    // //     // //                         node_select <= 1;
+    // //     // //                         // stack <= stack + 1;
+    // //     // //                     end
+    // //     // //                     if (reg_pos == 0) scan_state_next <= 4;
+    // //     // //                     reg_pos <= reg_pos - 1;
+    // //     // //                 end
+    // //     // //             end
+    // //     // //             4: begin
+    // //     // //                 if (reg_pos <= 2) begin
+    // //     // //                     if (message[reg_pos] == 3'b101 || message[reg_pos] == 3'b110 || message[reg_pos] == 3'b111) begin
+    // //     // //                         data <= reg_pos;
+    // //     // //                         node_select <= 0;
+    // //     // //                         // stack <= stack - 1;
+    // //     // //                     end
+    // //     // //                     if (reg_pos == 2) scan_state_next <= 0;
+    // //     // //                     reg_pos <= reg_pos + 1;
+    // //     // //                 end
+    // //     // //             end
+    // //     // //             default: scan_state_next <= 0;
+    // //     // //         endcase
+    // //     // //         end
+    // //     // //     end
+    // //     // //     end
+    // //     // // endmodule
+
+    // // module ship_master(
+    // //     input clk,
+    // //     input read_done,
+    // //     input msgType,
+    // //     // reg data input
+    // //     input [1:0] reg_pos_in,
+    // //     input [2:0] reg_data,
+    // //     input reg_write_en,
+    // //     // travel related
+    // //     input wire travel_done,
+    // //     output reg run_done,
+    // //     output wire [4:0] node_id,
+    // //     output reg [2:0] scan_state,
+    // //     output reg node_select
+    // // );
+
+
+    // // // message array
+    // // reg [2:0] message [0:2];
+
+    // // // // internal registers
+    // // reg [1:0] current_unit;
+    // // reg [2:0]  scan_state_next, scan_state_stack;
+    // // reg [2:0] data;
+    // // reg  is_stack;
+    // // reg signed[3:0] reg_pos;
+    // // reg [3:0] stack;
+    // // reg [2:0] state;// next_state;
+
+    // // // interpretor instantiation
+    // // interpretor uut (
+    // //     .current_unit(current_unit),
+    // //     .msgType(msgType),
+    // //     .node_select(node_select),
+    // //     .data(data),
+    // //     .node_id(node_id)
+    // // );
+
+    // // initial begin
+    // //     message[0] = 3'b000;
+    // //     message[1] = 3'b000;
+    // //     message[2] = 3'b000;
+    // //     current_unit = 2'b10; // Error state fsu
+    // //    scan_state = 3'b1;
+    // //    scan_state_next = 3'b1; // Initialize next state
+    // //     reg_pos = 0;
+    // //     state = 3'd0;
+    // //     data = 3'b000;
+    // //     node_select = 1'b0;
+    // //     stack = 4'd0;
+    // //     scan_state_stack = 5'd0;
+    // //     is_stack = 1'b0;
+    // // end
+
+    // // // Synchronous write logic
+    // // always @(posedge clk) begin
+    // //     if (reg_write_en) begin
+    // //         message[reg_pos_in] <= reg_data;
+    // //     end
+    // //     if (msgType && read_done) begin
+    // //         current_unit <= reg_data[1:0];
+    // //     end
+    // // end
+
+    // // // State machine logic
+    // // always @(posedge clk) begin
+    // //     scan_state <= scan_state_next;
+    // //     if (read_done) begin
+    // //         if (msgType) begin
+    // //             data <= message[0];
+    // //         end else begin
+    // //             case (scan_state)
+    // //                 1: begin // Decrement reg_pos from 2 to 0
+    // //                     if (message[reg_pos] == 3'b001 || message[reg_pos] == 3'b010 || message[reg_pos] == 3'b011) begin
+    // //                         data <= message[reg_pos];
+    // //                         node_select <= 0;
+    // //                         is_stack <= 1;
+    // //                     end
+    // //                     if (reg_pos == 0) scan_state_next <= 2;
+    // //                     if (is_stack) begin
+    // //                         scan_state_stack <= scan_state_next;
+    // //                         scan_state_next <= 5;
+    // //                     end
+    // //                     reg_pos <= reg_pos - 1;
+    // //                 end
+    // //                 2: begin // Increment reg_pos from 0 to 2
+    // //                     if (message[reg_pos] == 3'b001 || message[reg_pos] == 3'b010 || message[reg_pos] == 3'b011) begin
+    // //                         data <= message[reg_pos];
+    // //                         node_select <= 1;
+    // //                         is_stack <= 1;
+    // //                     end
+    // //                     if (reg_pos == 2) scan_state_next <= 3;
+    // //                     if (is_stack) begin
+    // //                         scan_state_stack <= scan_state_next;
+    // //                         scan_state_next <= 5;
+    // //                     end
+    // //                     reg_pos <= reg_pos + 1;
+    // //                 end
+    // //                 3: begin // Decrement reg_pos from 2 to 0
+    // //                     if (message[reg_pos] == 3'b101 || message[reg_pos] == 3'b110 || message[reg_pos] == 3'b111) begin
+    // //                         data <= message[reg_pos];
+    // //                         node_select <= 1;
+    // //                         is_stack <= 1;
+    // //                     end
+    // //                     if (reg_pos == 0) scan_state_next <= 4;
+    // //                     if (is_stack) begin
+    // //                         scan_state_stack <= scan_state_next;
+    // //                         scan_state_next <= 5;
+    // //                     end
+    // //                     reg_pos <= reg_pos - 1;
+    // //                 end
+    // //                 4: begin // Increment reg_pos from 0 to 2
+    // //                     if (message[reg_pos] == 3'b101 || message[reg_pos] == 3'b110 || message[reg_pos] == 3'b111) begin
+    // //                         data <= message[reg_pos];
+    // //                         node_select <= 0;
+    // //                         is_stack <= 1;
+    // //                     end
+    // //                     if (reg_pos == 2) scan_state_next <= 0;
+    // //                     if (is_stack) begin
+    // //                         scan_state_stack <= scan_state_next;
+    // //                         scan_state_next <= 5;
+    // //                     end
+    // //                     reg_pos <= reg_pos + 1;
+    // //                 end
+    // //                 5: begin
+    // //                     /* this state is for waiting untill the read_done signal is high then continue
+    // //                     entry : when ever you write to the data register
+    // //                     exit : when the read_done signal is high to the place you left from
+    // //                     */
+    // //                     // Wait for read_done to return to previous state
+    // //                     if (travel_done) begin
+    // //                         scan_state_next <= scan_state_stack; // Return to previous scanning state
+    // //                         // Preserve current reg_pos and node_select values
+    // //                         // data <= message[reg_pos];
+    // //                         is_stack <= 0;
+    // //                     end
+    // //                     else begin
+    // //                         scan_state_next <= 5; // Stay in wait state
+    // //                     end
+    // //                 end
+    // //                 default: scan_state_next <= 0;
+    // //             endcase
+    // //         end
+    // //     end
+    // // end
+
+    // // endmodule
+
+
+
+    // // // //module nodeFinder(
+    // // //     //    input clk,
+    // // //     //    input reset,
+    // // //     //    input update,
+    // // //     //    output wire [1:0] node_select,
+    // // //     //    output wire [2:0] data
+    // // //     //);
+    // // //     //
+    // // //     //    wire [2:0] array [0:2]; // 3x3-bit wireister array // reduce the 0:3 to 0:2 when you can
+
+        
+    // // //     	 /*
+    // // //     	 The issue occurs because pos needs to represent values below zero and above two during transitions. 
+    // // //     	 A 2-bit wireister (wire [1:0] pos;) wraps around when subtracting from zero or adding beyond two, causing incorrect behavior.
+    // // //     	 */
+
+        
+    // // //        // Initialize the array with predefined values
+    // // //     //    initial begin
+    // // //     //        array[0] = 3'b001; // MU1 (1)
+    // // //     //        array[1] = 3'b110; // SU2 (2)
+    // // //     //        array[2] = 3'b111; // SU3 (3)
+    // // //     //    end
+        
+    // // //     always @(posedge clk) begin
+    // // //            case (state)
+    // // //                0: begin // Idle state, wait for update
+    // // //                    if (read_done) begin
+    // // //                        reg_pos <= 2;
+    // // //                        state <= 1;
+    // // //                    end else
+    // // //                        state <= 0;
+    // // //                end
+    // // //                1: begin // Scan from pos 2 to 0 for MU
+    // // //                    if (reg_pos >= 0) begin
+    // // //                        if (message[reg_pos] == 3'b001 || message[reg_pos] == 3'b010 || message[reg_pos] == 3'b011) begin
+    // // //                            data <= reg_pos;
+    // // //                            node_select <= 0;
+    // // //                            stack <= stack + 1;
+    // // //                        end
+    // // //                        if (reg_pos == 0) state <= 2;
+    // // //                        else reg_pos <= reg_pos - 1;
+    // // //                    end
+    // // //                end
+    // // //                2: begin // Scan from reg_pos 0 to 2 for MU
+    // // //                    if (reg_pos <= 2) begin
+    // // //                        if (message[reg_pos] == 3'b001 || message[reg_pos] == 3'b010 || message[reg_pos] == 3'b011) begin
+    // // //                            data <= message[reg_pos];
+    // // //                            node_select <= 1;
+    // // //                            stack <= stack - 1;
+    // // //                        end
+    // // //                        if (reg_pos == 2) state <= 3;
+    // // //                        else reg_pos <= reg_pos + 1;
+    // // //                    end
+    // // //                end
+    // // //                3: begin // Scan from pos 2 to 0 for SU
+    // // //                    if (reg_pos >= 0) begin
+    // // //                        if (message[reg_pos] == 3'b101 || message[reg_pos] == 3'b110 || message[reg_pos] == 3'b111) begin
+    // // //                            data <= message[reg_pos];
+    // // //                            node_select <= 1;
+    // // //                            stack <= stack + 1;
+    // // //                        end
+    // // //                        if (reg_pos == 0) state <= 4;
+    // // //                        else reg_pos <= reg_pos - 1;
+    // // //                    end
+    // // //                end
+    // // //                4: begin // Scan from pos 0 to 2 for SU
+    // // //                    if (reg_pos <= 2) begin
+    // // //                        if (message[reg_pos] == 3'b101 || message[reg_pos] == 3'b110 || message[reg_pos] == 3'b111) begin
+    // // //                            data <= reg_pos;
+    // // //                            node_select <= 0;
+    // // //                            stack <= stack - 1;
+    // // //                        end
+    // // //                        if (reg_pos == 2) state <= 0;
+    // // //                        else reg_pos <= reg_pos + 1;
+    // // //                    end
+    // // //                end
+    // // //                default: state <= 0;
+    // // //            endcase
+    // // //        end
+    // // //     endmodule
+
+    // module ship_master(
+    //     input clk,
+    //     input read_done,
+    //     input msgType,
+    //     input [1:0] reg_pos_in,
+    //     input [2:0] reg_data,
+    //     input reg_write_en,
+    //     input wire travel_done,
+    //     output reg run_done,
+    //     output wire [4:0] node_id,
+    //     output reg [2:0] scan_state,
+    //     output reg node_select
+    // );
+
+
+    // // message array
+    // reg [2:0] message [0:2];
+    // reg [1:0] current_unit;
+    // reg [2:0] scan_state_next, scan_state_stack;
+    // reg [2:0] data;
+    // reg is_stack;
+    // integer reg_pos;
+    // reg [3:0] stack;
+    // reg [2:0] state;
+
+    // // interpretor instantiation
+    // interpretor itptr (
+    //     .current_unit(current_unit),
+    //     .msgType(msgType),
+    //     .node_select(node_select),
+    //     .data(data),
+    //     .node_id(node_id)
+    // );
+
+    // initial begin
+    //     message[0] = 3'b000;
+    //     message[1] = 3'b000;
+    //     message[2] = 3'b000;
+    //     current_unit = 2'b10;
+    //     scan_state = 3'b1;
+    //     scan_state_next = 3'b1;
+    //     reg_pos = 2;  // Start from position 2
+    //     state = 3'd0;
+    //     data = 3'b000;
+    //     node_select = 1'b0;
+    //     stack = 4'd0;
+    //     scan_state_stack = 3'd0;
+    //     is_stack = 1'b0;
+    //     run_done = 1'b0;
+    //     // run_done = 1'b0;
+    // end
+
+    // // Synchronous write logic
+    // always @(posedge clk) begin
+    //     if (reg_write_en) begin
+    //         message[reg_pos_in] <= reg_data;
+    //     end
+    //     if (msgType && read_done) begin
+    //         current_unit <= reg_data[1:0];
+    //     end
+    // end
+
+    // // State machine logic
+    // always @(posedge clk) begin
+    //     if (!read_done) begin
+    //         scan_state <= 6;  // Hold current state
+    //     end else begin
+    //         scan_state <= scan_state_next;
+            
+    //         if (msgType) begin
+    //             data <= message[0];
+    //         end else begin
+    //             case (scan_state)
+    //                 1: begin
+    //                     node_select <= 0;
+    //                     if (reg_pos >= 0) begin
+    //                         if (message[reg_pos] == 3'b001 || message[reg_pos] == 3'b010 || message[reg_pos] == 3'b011) begin
+    //                             data <= message[reg_pos];
+    //                             // node_select <= 0;
+    //                             is_stack <= 1;
+    //                             // Store current state if not at boundary, else store next state
+    //                             scan_state_stack <= (reg_pos == 0) ? 2 : 1;
+    //                             scan_state_next <= 5;   // Go to wait state
+    //                         end 
+    //                         // else begin
+    //                             if (reg_pos == 0) scan_state_next <= 2;
+    //                             reg_pos <= reg_pos - 1;
+    //                         // end
+    //                     end
+    //                 end
+                    
+    //                 2: begin
+    //                     node_select <= 1;
+    //                     if (reg_pos <= 2) begin
+    //                         if (message[reg_pos] == 3'b001 || message[reg_pos] == 3'b010 || message[reg_pos] == 3'b011) begin
+    //                             data <= message[reg_pos];
+    //                             // node_select <= 1;
+    //                             is_stack <= 1;
+    //                             // Store current state if not at boundary, else store next state
+    //                             scan_state_stack <= (reg_pos == 2) ? 3 : 2;
+    //                             scan_state_next <= 5;
+    //                         end 
+    //                         // else begin
+    //                             if (reg_pos == 2) scan_state_next <= 3;
+    //                             reg_pos <= reg_pos + 1;
+    //                         // end
+    //                     end
+    //                 end
+                    
+    //                 3: begin
+    //                     node_select <= 1;
+    //                     if (reg_pos >= 0) begin
+    //                         if (message[reg_pos] == 3'b101 || message[reg_pos] == 3'b110 || message[reg_pos] == 3'b111) begin
+    //                             data <= message[reg_pos];
+    //                             // node_select <= 1;
+    //                             is_stack <= 1;
+    //                             // Store current state if not at boundary, else store next state
+    //                             scan_state_stack <= (reg_pos == 0) ? 4 : 3;
+    //                             scan_state_next <= 5;
+    //                         end 
+    //                         // else begin
+                                
+    //                             if (reg_pos == 0) scan_state_next <= 4;
+    //                             reg_pos <= reg_pos - 1;
+    //                         // end
+    //                     end
+    //                 end
+                    
+    //                 4: begin
+    //                     node_select <= 0;
+    //                     if (reg_pos <= 2) begin
+    //                         if (message[reg_pos] == 3'b101 || message[reg_pos] == 3'b110 || message[reg_pos] == 3'b111) begin
+    //                             data <= message[reg_pos];
+    //                             // node_select <= 0;
+    //                             is_stack <= 1;
+    //                             // Store current state if not at boundary, else store next state
+    //                             scan_state_stack <= (reg_pos == 2) ? 1 : 4;
+    //                             scan_state_next <= 5;
+    //                         end 
+    //                         // else begin
+    //                             if (reg_pos == 2) begin scan_state_next <= 5; run_done <= 1'b1; end
+    //                             reg_pos <= reg_pos + 1;
+    //                         // end
+    //                     end
+    //                 end
+                    
+    //                 6: begin
+    //                     // if (travel_done) begin
+    //                         // scan_state_next <= scan_state_stack;
+    //                         // is_stack <= 0;
+    //                     // end else begin
+    //                         scan_state_next <= 6;
+    //                     // end
+    //                 end
+
+    //                 5: begin  // Wait state
+    //                     if (travel_done) begin
+    //                         scan_state_next <= scan_state_stack;
+    //                         is_stack <= 0;
+    //                         // reg_pos <= (scan_state[0]) ? reg_pos - 1 : reg_pos + 1;
+    //                         // No reset of reg_pos - continue from where we left off
+    //                     end else begin
+    //                         scan_state_next <= 5;  // Stay in wait state
+    //                     end
+    //                 end
+                    
+    //                 default: begin
+    //                     scan_state_next <= 1;
+    //                     reg_pos <= 2;
+    //                 end
+    //             endcase
+    //         end
+    //     end
+    // end
+
+    // endmodule
+
+
+    // module ship_master(
+    //     input clk,
+    //     input read_done,
+    //     input msgType,
+    //     // reg data input
+    //     input [1:0] reg_pos_in,
+    //     input [2:0] reg_data,
+    //     input reg_write_en,
+    //     // travel related
+    //     input travel_done,
+    //     output reg run_done,
+    //     output wire [5:0] node_id,
+    //     output reg node_select
+    // );
+
+    // // message array
+    // reg [2:0] message [0:2];
+    // integer i, j;
+    // // internal registers
+    // reg [1:0] current_unit;
+    // reg [2:0] data;
+    // reg signed[3:0] reg_pos;
+
+    // // NEW: MU/SU processing registers
+    // reg [1:0] mu_positions [3:0];
+    // reg [2:0] mu_values [3:0];
+    // reg [2:0] su_values [3:0];
+    // reg [1:0] su_positions [3:0];
+    // reg [1:0] mu_count;
+    // reg [1:0] su_count;
+    // reg [1:0] mu_index;  // Index for outputting MU values
+    // reg [1:0] su_index;  // Index for outputting SU values
+
+    // // Define the node values (important for comparison)
+    // parameter MU1 = 3'b001;  //Corrected these definitions as per your state machine
+    // parameter MU2 = 3'b010;
+    // parameter MU3 = 3'b011;
+    // parameter SU1 = 3'b101;
+    // parameter SU2 = 3'b110;
+    // parameter SU3 = 3'b111;
+
+    // // interpretor instantiation (unchanged)
+    // interpretor uut (
+    //     .current_unit(current_unit),
+    //     .msgType(msgType),
+    //     .node_select(node_select),
+    //     .data(data),
+    //     .node_id(node_id)
+    // );
+
+    // initial begin
+    //     message[0] = 3'b000;
+    //     message[1] = 3'b000;
+    //     message[2] = 3'b000;
+    //     current_unit = 2'b10; // Error state fsu
+    //     reg_pos = 0;
+    //     mu_count = 0;
+    //     su_count = 0;
+    //     mu_index = 0;
+    //     su_index = 0;
+    //     node_select = 1'b0;
+
+    //     // Initialize output registers
+    //     run_done = 0;
+    // end
+
+    // // Synchronous write logic (unchanged)
+    // always @(posedge clk) begin
+    //     if (reg_write_en) begin
+    //         message[reg_pos_in] <= reg_data;
+    //     end
+    //     if (msgType && read_done) begin
+    //         current_unit <= reg_data[1:0];
+    //     end
+    // end
+
+    // // State machine for MU/SU processing
+    // reg [3:0] state;
+    // localparam IDLE = 4'd0;
+    // localparam FIND_MU = 4'd1;
+    // localparam SORT_MU = 4'd2;
+    // localparam OUTPUT_MU_POS = 4'd3;
+    // localparam OUTPUT_MU_VAL = 4'd4;
+    // localparam FIND_SU = 4'd5;
+    // localparam OUTPUT_SU_VAL = 4'd6;
+    // localparam OUTPUT_SU_POS = 4'd7;
+    // localparam DONE = 4'd8;
+
+    // reg [2:0] temp_val ;
+    // reg [2:0] temp_pos ;
+
+    // always @(posedge clk) begin
+    //     if (!read_done) begin  // Added reset condition: Stall until read_done
+    //         state <= IDLE;
+    //         run_done <= 0;
+    //     end else begin
+    //         case (state)
+    //             IDLE: begin
+    //                 mu_count <= 0;
+    //                 su_count <= 0;
+    //                 mu_index <= 0;
+    //                 su_index <= 0;
+    //                 state <= FIND_MU;
+    //                 run_done <= 0; //Not yet.
+    //             end
+
+    //             FIND_MU: begin
+    //                 // Scan from right to left (2 to 0)
+    //                 for ( i = 2; i >=0; i = i - 1) begin
+    //                     if (message[i] == MU1 || message[i] == MU2 || message[i] == MU3) begin                             // if (message[i] >= MU1 && message[i] <= MU3) begin
+    //                     mu_positions[mu_count] <= i;
+    //                     mu_values[mu_count] <= message[i];
+    //                     mu_count <= mu_count + 1;
+    //                   end
+    //                 end
+    //                 state <= OUTPUT_MU_POS;    //SORT_MU
+    //             end
+
+    //             SORT_MU: begin
+    //               // Sort MU values (and corresponding positions) in descending order
+    //               for ( i = 0; i < 3 - 1; i = i + 1) begin
+    //                 for ( j = i + 1; j < 3; j = j + 1) begin
+    //                   if (mu_values[i] < mu_values[j]) begin
+    //                     // Swap values and positions
+    //                     temp_val = mu_values[i];
+    //                     temp_pos = mu_positions[i];
+    //                     mu_values[i] <= mu_values[j];
+    //                     mu_positions[i] <= mu_positions[j];
+    //                     mu_values[j] <= temp_val;
+    //                     mu_positions[j] <= temp_pos;
+    //                   end
+    //                 end
+    //               end
+    //               state <= OUTPUT_MU_POS;
+    //             end
+
+    //             OUTPUT_MU_POS: begin
+    //               // Output MU positions
+    //               if (mu_index < mu_count) begin
+    //                 data <= mu_positions[mu_index]; // Output the position
+    //                 node_select <= 0;  //Indicate we are outputting MU Position
+    //                 mu_index <= mu_index + 1;
+    //               end else begin
+    //                 mu_index <= 0; //reset for next state
+    //                 state <= OUTPUT_MU_VAL;
+    //               end
+    //             end
+
+    //             OUTPUT_MU_VAL: begin
+    //               // Output MU values (reverse order of original positions)
+    //               if (mu_index < mu_count) begin
+    //                   data <= mu_values[mu_index]; // Output the value
+    //                   node_select <= 1; // Indicate we are outputting MU Value.
+    //                   mu_index <= mu_index + 1;
+    //               end else begin
+    //                   mu_index <= 0; // reset
+    //                   state <= FIND_SU;
+    //               end
+    //             end
+
+    //             FIND_SU: begin
+    //                 // Find SU values (right to left)
+    //                 for ( i = 2; i >= 0; i = i - 1) begin
+    //                   if (message[i] >= SU1 && message[i] <= SU3) begin
+    //                     su_values[su_count] <= message[i];
+    //                     su_positions[su_count] <= i;
+    //                     su_count <= su_count + 1;
+    //                   end
+    //                 end
+    //                 state <= OUTPUT_SU_VAL;
+    //             end
+
+    //             OUTPUT_SU_VAL: begin
+    //                 // Output SU values
+    //                 if (su_index < su_count) begin
+    //                   data <= su_values[su_index]; // Output the value
+    //                   node_select <= 1; //SU Value
+    //                   su_index <= su_index + 1;
+    //                 end else begin
+    //                   su_index <= 0; //reset
+    //                   state <= OUTPUT_SU_POS;
+    //                 end
+    //             end
+
+    //             OUTPUT_SU_POS: begin
+    //               // Output SU positions
+    //               if (su_index < su_count) begin
+    //                 data <= su_positions[su_index]; // Output the position
+    //                 node_select <= 0; //SU Position
+    //                 su_index <= su_index + 1;
+    //               end else begin
+    //                 state <= DONE;
+    //               end
+    //             end
+
+    //             DONE: begin
+    //                 run_done <= 1;  // Processing is complete
+    //                 state <= IDLE;
+    //             end
+
+    //             default: state <= IDLE;
+    //         endcase
+    //     end
+    // end
+
+    // //assign node_id = data; // Connect data to node_id
+
+    // endmodule
+
+// module ship_master(
+//     input clk,
+//     input read_done,
+//     input msgType,
+//     // reg data input
+//     input [1:0] reg_pos_in,
+//     input [2:0] reg_data,
+//     input reg_write_en,
+//     // travel related
+//     input travel_done,
+//     output reg run_done,
+//     output wire [5:0] node_id,
+// 	 output reg node_select
+// );
+
+// // message array
+// reg [2:0] message [0:2];
+
+// // internal registers
+// reg [1:0] current_unit;
+// reg [2:0] data;
+// //reg node_select;
+// reg signed[3:0] reg_pos;
+
+// // Define the node values
+// parameter MU1 = 3'b001;
+// parameter MU2 = 3'b010;
+// parameter MU3 = 3'b011;
+// parameter SU1 = 3'b101;
+// parameter SU2 = 3'b110;
+// parameter SU3 = 3'b111;
+
+// // interpretor instantiation
+// interpretor uut (
+//     .current_unit(current_unit),
+//     .msgType(msgType),
+//     .node_select(node_select),
+//     .data(data),
+//     .node_id(node_id)
+// );
+
+// initial begin
+//     message[0] = 3'b000;
+//     message[1] = 3'b000;
+//     message[2] = 3'b000;
+//     current_unit = 2'b10; // Error state fsu
+//     reg_pos = 0;
+// end
+
+// // Synchronous write logic
+// always @(posedge clk) begin
+//     if (reg_write_en) begin
+//         message[reg_pos_in] <= reg_data;
+//     end
+//     if (msgType && read_done) begin
+//         current_unit <= reg_data[1:0];
+//     end
+// end
+
+// reg [2:0] state;
+
+// /*
+// The issue occurs because pos needs to represent values below zero and above two during transitions.
+// A 2-bit wireister (wire [1:0] pos;) wraps around when subtracting from zero or adding beyond two, causing incorrect behavior.
+// */
+// reg signed [3:0] stack;
+
+// //State declarations
+// localparam IDLE = 3'b000;
+// localparam SCAN_MU_2_0 = 3'b001;
+// localparam SCAN_MU_0_2 = 3'b010;
+// localparam SCAN_SU_2_0 = 3'b011;
+// localparam SCAN_SU_0_2 = 3'b100;
+// localparam DONE      = 3'b101;
+
+
+// always @(posedge clk) begin
+//     case (state)
+//         IDLE: begin // Idle state, wait for update
+//             if (read_done) begin
+//                 reg_pos <= 2; // Start scanning from the rightmost position
+//                 stack <= 0;    // Initialize the stack
+//                 state <= SCAN_MU_2_0; // Start scanning for MUs
+//                 run_done <= 0;
+//             end else
+//                 state <= IDLE;
+//         end
+
+//         SCAN_MU_2_0: begin // Scan from pos 2 to 0 for MU
+//             if (reg_pos >= 0) begin
+//                 if (message[reg_pos] >= MU1 && message[reg_pos] <= MU3) begin
+//                     data <= reg_pos[1:0]; // Output the *POSITION*
+//                     node_select <= 0;     // Indicate it's a position
+//                     stack <= stack + 1;    // Increment stack (count of MUs)
+//                 end
+//                 if (reg_pos == 0) begin
+//                     state <= SCAN_MU_0_2; // Switch direction when reaching the end
+//                 end
+//                 reg_pos <= reg_pos - 1;  // Move to the next position (left)
+//             end else begin
+//                 state <= SCAN_MU_0_2; // Handle wrap-around case (shouldn't happen)
+//             end
+//         end
+
+//         SCAN_MU_0_2: begin // Scan from reg_pos 0 to 2 for MU
+//             if (reg_pos <= 2) begin
+//                 if (message[reg_pos] >= MU1 && message[reg_pos] <= MU3) begin
+//                     data <= message[reg_pos]; // Output the *VALUE*
+//                     node_select <= 1;         // Indicate it's a value
+//                     stack <= stack - 1;        // Decrement stack
+//                 end
+//                 if (reg_pos == 2) begin
+//                     state <= SCAN_SU_2_0;    // Switch to scanning for SUs
+//                 end
+//                 reg_pos <= reg_pos + 1;      // Move to the next position (right)
+//             end else begin
+//                 state <= SCAN_SU_2_0; // Handle wrap-around case (shouldn't happen)
+//             end
+//         end
+
+//         SCAN_SU_2_0: begin // Scan from pos 2 to 0 for SU
+//             if (reg_pos >= 0) begin
+//                 if (message[reg_pos] >= SU1 && message[reg_pos] <= SU3) begin
+//                     data <= message[reg_pos]; // Output the *VALUE*
+//                     node_select <= 1;        // Indicate it's a value
+//                     stack <= stack + 1;        // Increment stack (count of SUs)
+//                 end
+//                 if (reg_pos == 0) begin
+//                     state <= SCAN_SU_0_2;    // Switch direction when reaching the end
+//                 end
+//                 reg_pos <= reg_pos - 1;      // Move to the next position (left)
+//             end else begin
+//                 state <= SCAN_SU_0_2; // Handle wrap-around case
+//             end
+//         end
+
+//         SCAN_SU_0_2: begin // Scan from pos 0 to 2 for SU
+//             if (reg_pos <= 2) begin
+//                 if (message[reg_pos] >= SU1 && message[reg_pos] <= SU3) begin
+//                     data <= reg_pos[1:0]; // Output the *POSITION*
+//                     node_select <= 0;     // Indicate it's a position
+//                     stack <= stack - 1;        // Decrement stack
+//                 end
+//                 if (reg_pos == 2) begin
+//                     state <= DONE;         // All scanning is complete
+//                 end
+//                 reg_pos <= reg_pos + 1;      // Move to the next position (right)
+//             end else begin
+//                 state <= DONE; //Handle wraparound
+//             end
+//         end
+
+//         DONE: begin
+//             run_done <= 1;          // Signal completion
+//             state <= IDLE;          // Return to the idle state
+//         end
+
+//         default: state <= IDLE;
+//     endcase
+// end
+
+// //assign node_id = data; // Connect internal data to output node_id
+
+// endmodule
+
+############################################################
+
+
+
+code
+##############################################################
+
+led_controller.v
+
+##############################################################
+
+
+//
+//module led_controller(
+//    input wire [1:0] color_current,
+//    input wire done,
+//    input wire clk,
+//    input wire [4:0] current_pos,
+//	 input wire msg_rec,
+//	 input wire place_done,
+//    output reg [3:0] led1,
+//    output reg [3:0] led2,
+//    output reg [3:0] led3,	// Assuming 4 separate RGB LEDs mapped to led[0], led[1], led[2], led[3]
+//	 output reg [3:0] led4,
+//	 input wire msgType
+//	 );
+//
+//reg [24:0] counter; // Assuming a 25-bit counter for 1-second delay with a suitable clock
+//reg [24:0] delay_counter;
+//reg blink_state;
+//reg [1:0] color_prev;
+//reg [1:0] temp1_color;
+//reg [1:0] temp2_color;
+//reg [24:0] msg_counter; // Counter for 2-second LED4 glow
+//reg msg_active;         // Flag to track LED4 status
+//
+//
+//initial begin 
+//color_prev = 2'b00;
+//temp1_color = 2'b00;
+//temp2_color = 2'b00;
+//led1 = 3'b000;
+//led4 = 3'b000;
+//end
+//
+//always @(posedge clk) begin
+//    if (done) begin
+//        counter <= counter + 25'b1;
+//        if (counter == 24_000_000) begin // Adjusted for 1 MHz clock frequency
+//            blink_state <= ~blink_state; // Toggle blink state every 1 second
+//            counter <= 0;
+//        end
+//        if (blink_state) begin
+//            led1 <= 3'b010;
+//				led2 <= 3'b010;
+//				led3 <= 3'b010;
+////				led4 <= 3'b010; // GREEN on all three LEDs (led[0], led[1], led[2])
+//        end else begin
+//            led1 <= 3'b000;
+//				led2 <= 3'b000;
+//			   led3 <= 3'b000;
+////				led4 <= 3'b000; // LEDs off
+//        end
+//    end 
+//	 else begin
+//        counter <= 0; // Reset counter when not in done state
+//        blink_state <= 0;
+//		  
+//		 case(color_prev) 
+//				    2'b01: led1 = 3'b100; // Turn on LED for red
+//                2'b10: led1 = 3'b010; // Turn on LED for green
+//                2'b11: led1 = 3'b001; // Turn on LED for blue
+//                2'b00: led1 = 3'b000; // Turn on LED for white (or customize if needed)
+//                default: led1 = 3'b000; // Default case for safety
+//            endcase	
+//   // end
+//	 end
+//end
+//
+////add logic after positioning of object turn on EI into green color//
+//
+//
+//always @(posedge clk) begin
+//	if (delay_counter == 4_000_000)begin
+//	temp2_color <= temp1_color;
+//	temp1_color <= color_current;
+//	delay_counter <= 0;
+//	end else begin
+//	delay_counter <= delay_counter + 1;
+//	end
+//	//temp1_color <= color_current;
+//end
+////
+//always @(posedge clk) begin
+//	if((temp2_color == temp1_color == color_current) && temp2_color != 2'b00) begin
+//	color_prev = temp2_color;
+//	end
+//	end
+//		
+//	
+//	// LED4 Control for Message Reception
+//always @(posedge clk) begin
+//    if (msgType) begin
+//        msg_active <= 1;  // Set the flag when `msg_rec` is detected
+//        msg_counter <= 0;  // Reset counter
+//    end
+//
+//    if (msg_active) begin
+//        led4 <= 3'b011; // LED4 ON
+//        msg_counter <= msg_counter + 1;
+//        if (msg_counter >= 25_000_000) begin // 2-second delay (assuming 1 MHz clock)
+//            led4 <= 3'b000; // LED4 OFF
+//            msg_active <= 0; // Reset flag
+//        end
+//    end else begin
+//        led4 <= 3'b000; // Default OFF state
+//    end
+//end
+//
+//endmodule
+//
+//
+
+##############################################################
+
+lmd.v
+
+##############################################################
+
+// parameter [13:0] TURN_REGISTER_VALUE = 13'b01010110101011; //01010110101011
+//reg [1:0] turn_reg_array [11:0];
+//
+//wire [13:0] turn_register; // idx 
+//	 
+//assign turn_register = {turn_reg_array[11], turn_reg_array[10], turn_reg_array[9], 
+//                            turn_reg_array[8], turn_reg_array[7], turn_reg_array[6], 
+//                            turn_reg_array[5], turn_reg_array[4], turn_reg_array[3], 
+//                            turn_reg_array[2], turn_reg_array[1], turn_reg_array[0]};
+
+##############################################################
+
+servo_module.v
+
+##############################################################
+
+// module servo_control (
+
+    //     input wire clk,                    // Main clock
+    //     input wire reset,                  // Reset signal
+    //     input wire obstacle_detected,      // Trigger from the IR sensor module
+    //     output reg sarm_pwm,             // PWM signal for Servo 1
+    //     output reg sclaw_pwm              // PWM signal for Servo 2
+    // );
+
+    // // Parameters for Servo Timing
+    // reg [7:0] sarm_angle;               // Angle for Servo 1 (90° max)
+    // reg [7:0] sclaw_angle;               // Angle for Servo 2 (45° max)
+    // reg [23:0] timer;                     // Timer for slow rotation
+    // reg movement_stage;                   // Stage of movement
+
+    // // Initial settings
+    // initial begin
+    //     sarm_angle = 8'd0;              // Initial position of Servo 1
+    //     sclaw_angle = 8'd0;              // Initial position of Servo 2
+    //     timer = 24'd0;
+    //     movement_stage = 0;               // Start at stage 0
+    // end
+
+    // // Servo Movement Control
+    // always @(posedge clk or posedge reset) begin
+    //     if (reset) begin
+    //         sarm_angle <= 8'd0;
+    //         sclaw_angle <= 8'd0;
+    //         timer <= 24'd0;
+    //         movement_stage <= 0;
+    //     end else if (obstacle_detected) begin
+    //         case (movement_stage)
+    //             0: begin // First stage: S1 clockwise 90° and S2 clockwise 45°
+    //                 if (timer < 24'd5000000) begin // Adjust timer for slower rotation
+    //                     sarm_angle <= 8'd90;    // Set Servo 1 to 90°
+    //                     sclaw_angle <= 8'd45;    // Set Servo 2 to 45°
+    //                     timer <= timer + 1;
+    //                 end else begin
+    //                     timer <= 0;
+    //                     movement_stage <= 1;
+    //                 end
+    //             end
+
+    //             1: begin // Second stage: S2 counterclockwise 45° and S1 counterclockwise 90°
+    //                 if (timer < 24'd5000000) begin
+    //                     sarm_angle <= 8'd0;     // Reset Servo 1 to 0°
+    //                     sclaw_angle <= 8'd0;     // Reset Servo 2 to 0°
+    //                     timer <= timer + 1;
+    //                 end else begin
+    //                     timer <= 0;
+    //                     movement_stage <= 0;      // Reset to initial stage
+    //                 end
+    //             end
+    //         endcase
+    //     end
+    // end
+
+    // // Generate PWM for servos (basic implementation)
+    // always @(posedge clk or posedge reset) begin
+    //     if (reset) begin
+    //         sarm_pwm <= 0;
+    //         sclaw_pwm <= 0;
+    //     end else begin
+    //         sarm_pwm <= (sarm_angle > 0) ? 1 : 0; // Simple PWM logic based on angle
+    //         sclaw_pwm <= (sclaw_angle > 0) ? 1 : 0; // Simple PWM logic based on angle
+    //     end
+    // end
+
+    // endmodule
+
+       //module gripper (
+//    input wire clk,                    // Main clock
+//    input wire reset,                  // Reset signal
+//    input wire obstacle_detected,      // Trigger from the IR sensor module
+//    input wire start_grip,             // Trigger from UART module
+//    input wire pick_mode,              // Mode signal for pick (1) or place (0)
+//    output reg sarm_pwm,               // PWM signal for Servo Arm
+//    output reg sclaw_pwm,              // PWM signal for Servo Claw
+//    output reg pick_done,              // Signal indicating pick operation is done
+//    output reg place_done,              // Signal indicating place operation is done
+//	 output reg [3:0] state                  // FSM state
+//);
+//
+//// Parameters for Servo Timing
+//reg signed [31:0] sarm_angle;                 // Angle for Servo Arm
+//reg signed [31:0] sclaw_angle;                // Angle for Servo Claw
+//reg [19:0] timer;                     // 20 bit for 10,48,575 max we use 10,00,000 states Timer for gradual rotation
+//reg [7:0] pwm_step;                   // Step for gradual PWM adjustments
+//
+//// FSM states
+//// reg [3:0] state;                      // FSM state
+//localparam IDLE = 4'd0,
+//           PICK_OPEN = 4'd1,
+//           PICK_LOWER = 4'd2,
+//           PICK_CLOSE = 4'd3,
+//           PICK_LIFT = 4'd4,
+//           PLACE_LOWER = 4'd5,
+//           PLACE_OPEN = 4'd6,
+//           PLACE_LIFT = 4'd7,
+//           PLACE_CLOSE = 4'd8;
+//
+//// Initial settings
+//initial begin
+//    sarm_angle = 9'd0;                // Initial position of Servo Arm
+//    sclaw_angle = 9'd0;               // Initial position of Servo Claw
+//    timer = 24'd0;
+//    pwm_step = 8'd1;                  // Default PWM step for gradual movement
+//    state = IDLE;                     // Start in idle state
+//    pick_done = 1'b0;
+//    place_done = 1'b0;
+//end
+//
+//
+//localparam signed SLOPE = 32'd556;
+//localparam MIN_VALUE = 32'd20000;
+//localparam MAX_VALUE = 32'd120000;
+//localparam ZERO_DEG_VALUE = 32'd70000;
+//
+//////reg [23:0] timer;
+////reg [19:0] arm_pwm_threshold;    // 20-bit threshold for PWM
+////reg [19:0] claw_pwm_threshold;   // 20-bit threshold for PWM
+//
+//// Function to convert degrees to PWM threshold
+//function [19:0] convert_to_pwm_threshold;
+//    input signed [31:0] degrees;
+//    reg [31:0] unsigned_value;
+//    reg [19:0] pwm_value;
+//    begin
+//        // Convert degrees to unsigned value (20000-120000 range)
+//        if (degrees <= 0) begin
+//            // For -90 to 0: start at 20000 and go up to 70000
+//            unsigned_value = MIN_VALUE + ($signed(degrees + 90) * SLOPE);
+//        end
+//        else begin
+//            // For 0 to 90: start at 70000 and go up to 120000
+//            unsigned_value = ZERO_DEG_VALUE + (degrees * SLOPE);
+//        end
+//        
+//        // Bound the output
+//        if (unsigned_value < MIN_VALUE || degrees < -90) begin
+//            unsigned_value = MIN_VALUE;
+//        end
+//        else if (unsigned_value > MAX_VALUE || degrees > 90) begin
+//            unsigned_value = MAX_VALUE;
+//        end
+//        
+//        // Convert to PWM threshold (0-999999)
+//        // Scale factor is approximately 10
+//        pwm_value = ((unsigned_value - MIN_VALUE) * 10) & 20'hFFFFF;
+//        convert_to_pwm_threshold = pwm_value;
+//    end
+//endfunction
+//
+//Frequency_Scaling  #(.COUNTER_WIDTH(25), .MAX_COUNT(1000000)) gujiguji(
+//    clk,
+//    clk_out_s
+//);
+//
+//// FSM Logic
+//always @(posedge clk_out_s or posedge reset) begin
+//    if (reset) begin
+//        sarm_angle <= 9'd0;
+//        sclaw_angle <= 9'd0;
+////        timer <= 24'd0;
+//        state <= IDLE;
+//        pick_done <= 1'b0;
+//        place_done <= 1'b0;
+//    end else begin
+//        case (state)
+//            IDLE: begin
+//                pick_done <= 1'b0;
+//                place_done <= 1'b0;
+//                if (obstacle_detected && start_grip) begin
+//                    if (pick_mode) begin
+//                        state <= PICK_OPEN; // Start pick operation
+//                    end else begin
+//                        state <= PLACE_LOWER; // Start place operation
+//                    end
+//                end
+//            end
+//
+//            // PICK State Actions
+//            PICK_OPEN: begin
+//                sclaw_angle <= 9'd0; // Directly set claw to open (45° counterclockwise)
+//                state <= PICK_LOWER;
+//            end
+//
+//            PICK_LOWER: begin
+//                if (sarm_angle < 9'd90) begin
+//                    sarm_angle <= sarm_angle + pwm_step; // Gradually lower arm (90° counterclockwise)
+//                end else begin
+//                    state <= PICK_CLOSE;
+//                end
+//            end
+//
+//            PICK_CLOSE: begin
+//                sclaw_angle <= 9'd45; // Directly set claw to close (45° clockwise)
+//                state <= PICK_LIFT;
+//            end
+//
+//            PICK_LIFT: begin
+//                if (sarm_angle > 9'd0) begin
+//                    sarm_angle <= sarm_angle - pwm_step; // Gradually lift arm (90° clockwise)
+//                end else begin
+//                    state <= IDLE;
+//                    pick_done <= 1'b1; // Pick operation done
+//                end
+//            end
+//
+//            // PLACE State Actions
+//            PLACE_LOWER: begin
+//                if (sarm_angle < 9'd90) begin
+//                    sarm_angle <= sarm_angle + pwm_step; // Gradually lower arm (90° counterclockwise)
+//                end else begin
+//                    state <= PLACE_OPEN;
+//                end
+//            end
+//
+//            PLACE_OPEN: begin
+//                sclaw_angle <= 9'd0; // Directly set claw to open (45° counterclockwise)
+//                state <= PLACE_LIFT;
+//            end
+//
+//            PLACE_LIFT: begin
+//                if (sarm_angle > 9'd0) begin
+//                    sarm_angle <= sarm_angle - pwm_step; // Gradually lift arm (90° clockwise)
+//                end else begin
+//                    state <= PLACE_CLOSE;
+//                end
+//            end
+//
+//            PLACE_CLOSE: begin
+//                sclaw_angle <= 9'd45; // Directly set claw to close (45° clockwise)
+//                place_done <= 1'b1; // Place operation done
+//                state <= IDLE;         // Return to idle state
+//            end
+//
+//            default: state <= IDLE;
+//        endcase
+//    end
+//end
+//
+//
+//
+//// Generate PWM for servos
+//always @(posedge clk or posedge reset) begin
+//    if (reset) begin
+//        sarm_pwm <= 0;
+//        sclaw_pwm <= 0;
+//        timer <= 24'd0;
+//    end else if (timer == 20'd999999) begin
+//		timer <= 24'd0;
+//	end else begin
+//        // Generate PWM for gradual servo movement
+//        if (timer < convert_to_pwm_threshold(sarm_angle)) begin
+//            sarm_pwm <= 1;
+//        end else begin
+//            sarm_pwm <= 0;
+//        end
+//
+//        // Generate direct PWM for sclaw
+//        if (timer < convert_to_pwm_threshold(sclaw_angle)) begin
+//            sclaw_pwm <=  1 ;
+//        end else begin
+//            sclaw_pwm <= 0;
+//        end
+//
+//        // Increment timer with wrapping
+//        timer <= timer + 1;
+//    end
+//end
+//
+//endmodule
+
+##############################################################
+
+//// Frequency scaling module for 50Hz cloc k
+//module Frequency_Scaling #(
+//    parameter COUNTER_WIDTH = 25,
+//    parameter MAX_COUNT = 1000000
+//) (
+//    input wire clk_in,
+//    output reg clk_out
+//);
+//
+//reg [COUNTER_WIDTH-1:0] counter;
+//
+//always @(posedge clk_in) begin
+//    if (counter >= MAX_COUNT-1) begin
+//        counter <= 0;
+//        clk_out <= ~clk_out;
+//    end else begin
+//        counter <= counter + 1;
+//    end
+//end
+//
+//endmodule
+
+
+##############################################################
+
+task4one.v
+
+##############################################################
+
+//gripper gpr (
+//    .clk(clk),                   // Main clock
+//    .reset(1'b0),
+//    .obstacle_detected(!ir_in),     // Trigger from the IR sensor module
+//    .start_grip(dest_reached),            // high when dets is reached in lmd motor driver cause that us when we are on leaf nodes
+//    .pick_mode(),             // 1 = Pick, 0 = Place. will be generaed from nodefinder
+//    .sarm_pwm(sarm_pwm),              // PWM for Servo Arm
+//    .sclaw_pwm(sclaw_pwm),             // PWM for Servo Claw
+//    .pick_done(pick_done),             // Pick operation completed
+//    .place_done(place_done),            // Place operation completed
+//    .state(gripper_state)             // FSM state
+//);
+
+##############################################################
+
+uartmod.v
+
+##############################################################
+
+
+//    integer i;
+//	 integer j;
+//	 reg [2:0] shift_index = 0;
+//    always @(posedge clk_3_125Mhz) begin
+//        if (rx_complete) begin
+//				
+////            Message_Received <= msg_rec; // Store the received message
+//            // Reverse bits and store  
+//		  if (shift_index < 8) begin
+//        Message_Received [shift_index] <= msg_rec[7 - shift_index];
+//        shift_index <= shift_index + 1;  // Increment in sync with clock
+//        end // Push the message onto the stack
+//	 	  message_stack[stack_ptr] <= Message_Received;
+//            if (stack_ptr < 23) 
+//                stack_ptr <= stack_ptr + 1; // Increment the stack pointer
+//            else
+//                stack_ptr <= 0; // Reset pointer if the stack is full
+//        end
+////		  if (run_done)begin
+////		  for(j = 0; j <= 22; j = j+ 1 )begin
+////			message_stack[j] = 8'b0 ;
+////			end
+////		  end
+//    end
+
+##############################################################
+
+//always @(posedge clk_3_125Mhz) begin
+//  if (rx_complete) begin
+//        case (msg_rec)
+//            8'h50: begin  // 'P' (ASCII for Pick)
+//                start_grip <= 1;
+////                pick_mode <= 1;
+//            end
+//            8'h4C: begin  // 'L' (ASCII for Place)
+//                start_grip <= 1;
+////                pick_mode <= 0;
+//            end
+//            default: begin
+//                start_grip <= 0;
+//            end
+//        endcase
+//    end else begin
+//        start_grip <= 0;
+//    end
+//end
+
+
+##############################################################
+
+// Combinational logic for next state [ determines if the node is message node]
+	//always @(*) begin
+	//    case (uart_state)
+	//        IDLE: begin
+	//            if (current_pos == 1 || current_pos == 8 || 
+	//                current_pos == 3 || current_pos == 4 || 
+	//                current_pos == 10 || current_pos == 11) begin
+	//					 if ((led_color_prev != led_color) && (led_color != 2'b00)) begin
+	//						next_uart_state = ACTIVE;
+	//					end else begin
+	//                next_uart_state = IDLE;
+	//            end
+	//            end else begin
+	//                next_uart_state = IDLE;
+	//            end
+	//        end
+	//        
+	//        ACTIVE: begin
+	//            next_uart_state = WAITING;
+	//        end
+	//        
+	//        WAITING: begin
+	//            if (node_found) begin
+	//                next_uart_state = IDLE;
+	//            end else begin
+	//                next_uart_state = WAITING;
+	//            end
+	//        end
+	//        
+	//        default: next_uart_state = IDLE;
+	//    endcase
+	//end
+		 
+	// Sequential logic
+	//always @(posedge clk_3_125Mhz ) begin
+	//        uart_state <= next_uart_state;
+	//        case (uart_state)
+	//            IDLE: start <= 0;
+	//            ACTIVE: start <= 1;
+	//            WAITING: start <= 0;
+	//        endcase
+	// //   end
+	//end
+		 
+	// Main state machine
+	// starts to send when start signal is high
+	// TL;DR : sends "SLM-FSU*-**#" character by character. * are decided by the current position and led color
+	//always @(posedge clk_3_125Mhz) begin
+	//    case (state_counter)
+	//        0: begin    
+	//            tx_start <= 0;
+	//            data_bits <= 8'h00;
+	//            read_index <= 0; // Reset read index to start transmission from the first character
+	//            if (message_ready && go_go) begin 
+	//				aggregated_message <= {message_stack[0], message_stack[1], message_stack[2], message_stack[3],
+	//                                            message_stack[4], message_stack[5], message_stack[6], message_stack[7],
+	//                                            message_stack[8], message_stack[9], message_stack[10], message_stack[11],
+	//                                            message_stack[12], message_stack[13], message_stack[14], message_stack[15]};
+	//                state_counter <= 1;
+	//            end
+	//        end
+	//
+	//        1: begin
+	//            // Load next character from message buffer
+	//            data_bits <= message_byte;
+	//            tx_start <= 1;
+	//            state_counter <= 2;
+	//        end
+	//
+	//        2: begin
+	//            tx_start <= 0;
+	//            if (tx_done) begin
+	//                if (read_index < 14) begin  // Iterate through all characters
+	//                    read_index <= read_index + 1;
+	//                    state_counter <= 1;  // Go back to send the next character
+	//                end else begin
+	//                    state_counter <= 0; // Transmission complete, reset
+	//                end
+	//            end
+	//        end
+	//    endcase
+	//end
+
+##############################################################
+
+uart_tx.v
+
+##############################################################
+
+//module uart_tx(
+//    input clk_3125,
+//    input parity_type, tx_start,
+//    input [7:0] data_in,  // Data from message formatter module
+//    output reg tx, tx_done
+//);
+//
+////////////////////DO NOT MAKE ANY CHANGES ABOVE THIS LINE//////////////////
+//
+//parameter BIT_PERIOD = 27;
+//parameter BUFFER_SIZE = 15;
+//
+//reg [3:0] state_counter;
+//reg [4:0] bit_length_counter;
+//reg [7:0] data_buffer [0:BUFFER_SIZE-1]; // Array to store 15 units of data
+//reg [3:0] buffer_index = 0;
+//reg [7:0] data; // Current byte being transmitted
+//reg parity_bit = 0;
+//reg buffer_full = 0;
+//
+//// Initialize outputs
+//initial begin
+//    tx = 1'b1;
+//    tx_done = 1'b0;
+//    state_counter = 0;
+//end
+//
+//// Store incoming data in buffer
+//
+//
+//// UART Transmitter Logic
+//always @(posedge clk_3125) begin
+//
+//if (tx_start && !buffer_full) begin
+//        data_buffer[buffer_index] <= data_in;
+//        buffer_index <= buffer_index + 1;
+//
+//        if (buffer_index == BUFFER_SIZE - 1) begin
+//            buffer_full <= 1;
+//        end
+//    end
+//    case (state_counter)
+//        0: begin 
+//            tx = 1'b1;  // Idle high
+//            tx_done <= 0;
+//            bit_length_counter <= 0;
+//            
+//            if (buffer_full) begin
+//                buffer_index <= 0;  // Reset buffer index for transmission
+//                data <= data_buffer[0]; // Load first byte
+//                tx = 1'b0; // Start bit
+//                parity_bit <= 0;
+//                state_counter <= 1;
+//            end
+//        end
+//        
+//        1: begin // Start bit
+//            bit_length_counter <= bit_length_counter + 1;
+//            if (bit_length_counter == BIT_PERIOD - 1) begin
+//                bit_length_counter <= 0;
+//                state_counter <= 2;
+//            end
+//        end
+//        
+//        2,3,4,5,6,7,8,9: begin  // Data bits
+//            tx <= data[9-state_counter];  // MSB first
+//            bit_length_counter <= bit_length_counter + 1;
+//            if (bit_length_counter < BIT_PERIOD) begin
+//                parity_bit <= parity_bit ^ data[9-state_counter];
+//            end
+//            
+//            if (bit_length_counter == BIT_PERIOD - 1) begin
+//                bit_length_counter <= 0;
+//                state_counter <= state_counter + 1;
+//            end
+//        end
+//        
+//        10: begin  // Parity bit
+//            tx <= (parity_type) ? ~parity_bit : parity_bit;
+//            bit_length_counter <= bit_length_counter + 1;
+//            if (bit_length_counter == BIT_PERIOD - 1) begin
+//                bit_length_counter <= 0;
+//                state_counter <= state_counter + 1;
+//            end
+//        end
+//        
+//        11: begin  // Stop bit
+//            tx <= 1'b1;
+//            bit_length_counter <= bit_length_counter + 1;
+//            if (bit_length_counter == BIT_PERIOD - 1) begin
+//                bit_length_counter <= 0;
+//                tx_done <= 1'b1;
+//                
+//                if (buffer_index < BUFFER_SIZE - 1) begin
+//                    buffer_index <= buffer_index + 1;
+//                    data <= data_buffer[buffer_index + 1];
+//                    state_counter <= 1; // Start transmission of next byte
+//                end else begin
+//                    buffer_index <= 0;
+//                    buffer_full <= 0; // Reset buffer
+//                    state_counter <= 0;
+//                end
+//            end
+//        end
+//
+//        default: begin
+//            state_counter <= 0;
+//            tx <= 1'b1;
+//        end
+//    endcase
+//end
+//
+//endmodule
+
+
+##############################################################
+
+upper_mdr_driver.v
+
+##############################################################
+
+// delay counter for the backward turn
+//always @(posedge clk or posedge reset) begin
+//    if (reset) begin
+//        delay_b <= 23'b0;          // Reset delay counter
+//        delay_done_b <= 1'b0;      // Reset delay_done flag
+//        delay_state_b <= 1'b0;   // Reset state to IDLE
+//    end else begin
+//        case (delay_state_b)
+//            1'b0: begin // IDLE state
+//                delay_b <= 23'b0;  // Keep counter at 0
+//                delay_done_b <= 1'b0; // Ensure delay_done is low
+//                if (delay_trigger_b) begin
+//                    delay_state_b <= 1'b1; // Transition to COUNTING on trigger
+//                end
+//            end
+//
+//            1'b1: begin // COUNTING state
+//                if (delay_b == 23'd3125000) begin    //-30000 //1562500
+//                    delay_done_b <= 1'b1;    // Set delay_done when target reached  
+//                    delay_b <= 23'b0;        // Reset counter
+//                    delay_state_b <= 1'b0; // Return to IDLE
+//                end else begin
+//                    delay_b <= delay_b + 1;    // Increment counter
+//                    delay_done_b <= 1'b0;    // Ensure delay_done remains low
+//                end
+//            end
+//        endcase
+//    end
+//end

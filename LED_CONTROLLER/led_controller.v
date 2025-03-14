@@ -1,151 +1,50 @@
-/*
-//# Team ID:          3800
-//# Theme:            ecomender bot
-//# Author List:      manny, priyank, yagnesh, sohum 
-//# Filename:         led controller
-//# File Description: led1, 2, 3 are connected to the 3 leds on the bot and this file controlles the color according to the detected color and done flag
-*/
-
 module led_controller(
-    input wire [1:0] color_current,
-    input wire done,
     input wire clk,
-    input wire [4:0] current_pos,
-    input wire msg_rec,
-    input wire place_done,
-    output reg [3:0] led1,
-    output reg [3:0] led2,
-    output reg [3:0] led3,
-    output reg [3:0] led4,
-    input wire msgType
+    input wire rst,
+    input wire [2:0] stable_color,  // 3-bit stable color input
+	 input wire [1:0] address,       // Address to control where to store the color
+    input wire msgType,
+    output reg [2:0] led1,
+    output reg [2:0] led2,
+    output reg [2:0] led3,
+    output reg [3:0] led4
 );
 
-reg [24:0] counter;
-reg [24:0] delay_counter;
-reg blink_state;
-reg [1:0] color_prev;
-reg [1:0] temp1_color;
-reg [1:0] temp2_color;
+//reg [1:0] color_count;  // Keeps track of how many colors have been assigned
+reg [8:0] store_color;
+integer i;
+
+always @(posedge clk or posedge rst) begin
+		if(rst) begin 
+			store_color <= 9'b0;
+		end
+     else if (stable_color != 3'b000) begin  // Ignore white (3'b000)
+        case (address)
+            2'b00: store_color[2:0]   <= stable_color;  // Store in first 3 bits
+            2'b01: store_color[5:3]   <= stable_color;  // Store in next 3 bits
+            2'b10: store_color[8:6]   <= stable_color;  // Store in last 3 bits
+            default: store_color[8:0] <= 8'b0;  // Do nothing if an invalid address
+        endcase 
+    end
+end
+
+// Combinational logic for LEDs
+always @(*) begin
+	if (rst) begin
+        led1 = 3'b000;
+        led2 = 3'b000;
+        led3 = 3'b000;
+    end else begin
+    led1 = store_color[2:0];  // First 3 bits control LED1
+    led2 = store_color[5:3];  // Next 3 bits control LED2
+    led3 = store_color[8:6];  // Last 3 bits control LED3
+	 end
+end
+
+// LED4 message reception logic (unchanged)
 reg [24:0] msg_counter;
 reg msg_active;
 
-// New registers for tracking three colors
-reg [1:0] first_color;
-reg [1:0] second_color;
-reg [1:0] third_color;
-reg [1:0] color_count;
-reg assignment_complete;  // New flag to indicate all colors are assigned
-
-initial begin 
-    color_prev = 2'b00;
-    temp1_color = 2'b00;
-    temp2_color = 2'b00;
-    led1 = 3'b000;
-    led2 = 3'b000;
-    led3 = 3'b000;
-    led4 = 3'b000;
-    first_color = 2'b00;
-    second_color = 2'b00;
-    third_color = 2'b00;
-    color_count = 2'b00;
-    assignment_complete = 0;
-end
-
-// Modified color detection and LED display logic
-always @(posedge clk) begin
-    if (delay_counter == 4_000_000) begin
-        temp2_color <= temp1_color;
-        temp1_color <= color_current;
-        delay_counter <= 0;
-    end else begin
-        delay_counter <= delay_counter + 1;
-    end
-end
-
-// New color recording logic with white color prevention
-always @(posedge clk) begin
-    if(!assignment_complete && (temp2_color == temp1_color) && (temp1_color == color_current) && (temp2_color != 2'b00)) begin
-        color_prev = temp2_color;
-        
-        // Record colors sequentially, skipping white
-        case(color_count)
-            2'b00: begin
-                if(first_color == 2'b00 && color_prev != 2'b00) begin  /// temp2_color has been changed to color_prev
-                    first_color <= color_prev;
-                    color_count <= color_count + 1;
-                end
-            end
-            2'b01: begin
-                if(second_color == 2'b00 && color_prev != 2'b00 && color_prev != first_color) begin
-                    second_color <= color_prev;
-                    color_count <= color_count + 1;
-                end
-            end
-            2'b10: begin
-                if(third_color == 2'b00 && color_prev != 2'b00 && 
-                   color_prev != first_color && color_prev != second_color) begin
-                    third_color <= color_prev;
-                    color_count <= color_count + 1;
-                    assignment_complete <= 1;  // Set completion flag when all colors are assigned
-                end
-            end
-        endcase
-    end
-end
-
-// Modified LED display logic
-always @(posedge clk) begin
-    if (done) begin
-        counter <= counter + 25'b1;
-        if (counter == 24_000_000) begin
-            blink_state <= ~blink_state;
-            counter <= 0;
-        end
-        if (blink_state) begin
-            led1 <= 3'b010;
-            led2 <= 3'b010;
-            led3 <= 3'b010;
-        end else begin
-            led1 <= 3'b000;
-            led2 <= 3'b000;
-            led3 <= 3'b000;
-        end
-    end 
-    else begin
-        counter <= 0;
-        blink_state <= 0;
-        
-        // Only display colors if they're not white (2'b00)
-        if(first_color != 2'b00) begin
-            case(first_color)
-                2'b01: led1 = 3'b100; // Red
-                2'b10: led1 = 3'b010; // Green
-                2'b11: led1 = 3'b001; // Blue
-                default: led1 = 3'b000;
-            endcase
-        end
-        
-        if(second_color != 2'b00) begin
-            case(second_color)
-                2'b01: led2 = 3'b100;
-                2'b10: led2 = 3'b010;
-                2'b11: led2 = 3'b001;
-                default: led2 = 3'b000;
-            endcase
-        end
-        
-        if(third_color != 2'b00) begin
-            case(third_color)
-                2'b01: led3 = 3'b100;
-                2'b10: led3 = 3'b010;
-                2'b11: led3 = 3'b001;
-                default: led3 = 3'b000;
-            endcase
-        end
-    end
-end
-
-// Keeping the original LED4 message reception logic unchanged
 always @(posedge clk) begin
     if (msgType) begin
         msg_active <= 1;

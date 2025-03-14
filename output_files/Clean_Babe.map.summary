@@ -1,14 +1,14 @@
-Analysis & Synthesis Status : Successful - Tue Feb 18 14:10:26 2025
+Analysis & Synthesis Status : Failed - Wed Feb 19 12:41:43 2025
 Quartus Prime Version : 20.1.1 Build 720 11/11/2020 SJ Lite Edition
 Revision Name : Clean_Babe
-Top-level Entity Name : led_controller
+Top-level Entity Name : Clean_Babe
 Family : Cyclone IV E
-Total logic elements : 58
-    Total combinational functions : 54
-    Dedicated logic registers : 37
-Total registers : 37
-Total pins : 21
-Total virtual pins : 0
-Total memory bits : 0
-Embedded Multiplier 9-bit elements : 0
-Total PLLs : 0
+Total logic elements : N/A until Partition Merge
+    Total combinational functions : N/A until Partition Merge
+    Dedicated logic registers : N/A until Partition Merge
+Total registers : N/A until Partition Merge
+Total pins : N/A until Partition Merge
+Total virtual pins : N/A until Partition Merge
+Total memory bits : N/A until Partition Merge
+Embedded Multiplier 9-bit elements : N/A until Partition Merge
+Total PLLs : N/A until Partition Merge

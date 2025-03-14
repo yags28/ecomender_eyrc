@@ -64,25 +64,25 @@ ship_master smt (
 
 
 
-//// Instantiate DUT
-//RISC_V_Wrapper uut (
-//        .clk(clk_slow),
-//        .rst(travel_done),
-//        .SP(node_start),				// {{26{0}}, node_start[5:0]}
-//        .EP(node_id),								//{{26{0}}, node_id[5:0]}
-//        .reset_internal(reset_internal),
-//        .start(start_cpu),
-//        .cpu_Result(),
-//        .cpu_WriteData(),
-//        .cpu_MemWrite(),
-//        .cpu_DataAdr(),
-//        .cpu_ReadData(),
-//        .cpu_PC(),
-//        .pos_in(curr_pos),
-//        .data_out(data_out),
-//        .dir_array_aggr(),
-//        .i(dir_arr_len),
-//        .cpu_done(cpu_done)
-//    );
+// Instantiate DUT
+RISC_V_Wrapper uut (
+        .clk(clk_slow),
+        .rst(travel_done),
+        .SP(node_start),				// {{26{0}}, node_start[5:0]}
+        .EP(node_id),								//{{26{0}}, node_id[5:0]}
+        .reset_internal(reset_internal),
+        .start(start_cpu),
+        .cpu_Result(),
+        .cpu_WriteData(),
+        .cpu_MemWrite(),
+        .cpu_DataAdr(),
+        .cpu_ReadData(),
+        .cpu_PC(),
+        .pos_in(curr_pos),
+        .data_out(data_out),
+        .dir_array_aggr(),
+        .i(dir_arr_len),
+        .cpu_done(cpu_done)
+    );
 
 endmodule

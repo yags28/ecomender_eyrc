@@ -7,7 +7,7 @@ module led_controller(
     output reg [2:0] led1,
     output reg [2:0] led2,
     output reg [2:0] led3,
-    output reg [3:0] led4
+    output reg [2:0] led4
 );
 
 //reg [1:0] color_count;  // Keeps track of how many colors have been assigned

@@ -7,11 +7,11 @@
 */
 
 module uart_mod(
-    input clk50M,
+    input clk_3_125Mhz,
     output wire tx,
     input [4:0] current_pos,
     input [3:0] led_color,
-    output reg go_go,
+    // output reg go_go,
     input wire rx,
     output wire[7:0] msg_rec,
     input wire [1:0] col_curr,
@@ -68,7 +68,7 @@ localparam MSG_COMPLETE = 2'b10;
 integer i;
 reg [3:0] shift_index = 0;
 
-uart_scale fqs3_125mhz (clk50M, clk_3_125Mhz);
+//uart_scale fqs3_125mhz (clk50M, clk_3_125Mhz);
 
 // Instantiate the UART transmitter (assuming proper implementation of uart_tx)
 uart_tx uart_tx_inst (

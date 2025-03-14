@@ -1,14 +1,14 @@
-Analysis & Synthesis Status : Successful - Tue Feb 18 12:19:31 2025
+Analysis & Synthesis Status : Successful - Tue Feb 18 14:10:26 2025
 Quartus Prime Version : 20.1.1 Build 720 11/11/2020 SJ Lite Edition
 Revision Name : Clean_Babe
-Top-level Entity Name : task4one
+Top-level Entity Name : led_controller
 Family : Cyclone IV E
-Total logic elements : 11,543
-    Total combinational functions : 8,267
-    Dedicated logic registers : 3,875
-Total registers : 3875
-Total pins : 39
+Total logic elements : 58
+    Total combinational functions : 54
+    Dedicated logic registers : 37
+Total registers : 37
+Total pins : 21
 Total virtual pins : 0
 Total memory bits : 0
-Embedded Multiplier 9-bit elements : 4
+Embedded Multiplier 9-bit elements : 0
 Total PLLs : 0
